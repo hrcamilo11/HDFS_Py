@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+service DataNodeService {
+    rpc StoreBlock (BlockRequest) returns (StoreResponse);
+    rpc ReplicateBlock (BlockRequest) returns (StoreResponse);
+}
+
+message BlockRequest {
+    bytes content = 1;
+    string block_id = 2;
+    repeated string replica_nodes = 3;
+}
+
+message StoreResponse {
+    bool success = 1;
+    string message = 2;
+} 

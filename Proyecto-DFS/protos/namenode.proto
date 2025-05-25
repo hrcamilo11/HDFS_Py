@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+service NameNodeService {
+    rpc RegisterDataNode (RegisterRequest) returns (RegisterResponse);
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+    rpc AllocateBlocks (AllocateBlocksRequest) returns (AllocateBlocksResponse);
+    rpc GetBlockLocations (BlockLocationRequest) returns (BlockLocationResponse);
+    rpc GetFileBlocks (FileBlocksRequest) returns (FileBlocksResponse);
+    rpc AddFile (AddFileRequest) returns (AddFileResponse);
+    rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
+    rpc Mkdir (MkdirRequest) returns (MkdirResponse);
+    rpc Rmdir (RmdirRequest) returns (RmdirResponse);
+    rpc RemoveFile (RemoveFileRequest) returns (RemoveFileResponse);
+}
+
+message RegisterRequest {
+    string node_id = 1;
+}
+message RegisterResponse {
+    bool success = 1;
+}
+
+message HeartbeatRequest {
+    string node_id = 1;
+}
+message HeartbeatResponse {
+    bool success = 1;
+}
+
+message AllocateBlocksRequest {
+    int64 file_size = 1;
+}
+message AllocateBlocksResponse {
+    repeated string block_ids = 1;
+}
+
+message BlockLocationRequest {
+    string block_id = 1;
+}
+message BlockLocationResponse {
+    repeated string node_ids = 1;
+}
+
+message FileBlocksRequest {
+    string file_path = 1;
+}
+message FileBlocksResponse {
+    repeated string block_ids = 1;
+}
+
+message AddFileRequest {
+    string file_path = 1;
+    repeated string block_ids = 2;
+}
+message AddFileResponse {
+    bool success = 1;
+}
+
+message ListFilesRequest {
+    string dir_path = 1;
+}
+message ListFilesResponse {
+    repeated string items = 1;
+}
+
+message MkdirRequest {
+    string dir_path = 1;
+}
+message MkdirResponse {
+    bool success = 1;
+}
+
+message RmdirRequest {
+    string dir_path = 1;
+}
+message RmdirResponse {
+    bool success = 1;
+}
+
+message RemoveFileRequest {
+    string file_path = 1;
+}
+message RemoveFileResponse {
+    bool success = 1;
+} 

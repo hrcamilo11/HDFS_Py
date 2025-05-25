@@ -1,0 +1,11 @@
+# NameNode  
+NAMENODE_HOST=namenode:8000  
+REPLICATION_FACTOR=2  
+BLOCK_SIZE_MB=64  
+
+# gRPC  
+GRPC_MAX_WORKERS=10  
+GRPC_PORT=50051  
+
+# Seguridad (Opcional)  
+AUTH_ENABLED=False  
