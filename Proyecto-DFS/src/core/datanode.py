@@ -63,8 +63,23 @@ class DataNode:
         self.server.add_insecure_port(f"[::]:{self.grpc_port}")
         self.server.start()
         print(f"DataNode {self.node_id} iniciado en puerto {self.grpc_port}")
+        
+        # Registrar el DataNode con el NameNode
+        self.register_with_namenode()
+        
         threading.Thread(target=self.heartbeat_loop, daemon=True).start()
         self.server.wait_for_termination()
+
+    def register_with_namenode(self):
+        from protos import namenode_pb2
+        from protos import namenode_pb2_grpc
+        try:
+            channel = grpc.insecure_channel(self.namenode_host)
+            stub = namenode_pb2_grpc.NameNodeServiceStub(channel)
+            stub.RegisterDataNode(namenode_pb2.RegisterRequest(node_id=self.node_id))
+            print(f"DataNode {self.node_id} registrado con el NameNode.")
+        except Exception as e:
+            print(f"Error registrando DataNode {self.node_id} con NameNode: {e}")
 
     def heartbeat_loop(self):
         from protos import namenode_pb2

@@ -45,7 +45,7 @@ def start_datanode_process(node_id, port, namenode_addr, storage_base_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Iniciar múltiples DataNodes DFS.")
     parser.add_argument("-n", "--num_datanodes", type=int, required=True, help="Número de DataNodes a iniciar.")
-    parser.add_argument("--start_port", type=int, default=50051, help="Puerto gRPC inicial para los DataNodes.")
+    parser.add_argument("--start_port", type=int, default=50053, help="Puerto gRPC inicial para los DataNodes.")
     parser.add_argument("--namenode", type=str, default="localhost:50052", help="Dirección del NameNode (host:puerto gRPC).")
     parser.add_argument("--storage_base", type=str, default="c:\\Users\\Camilo\\dfs_storage", help="Directorio base para el almacenamiento de los DataNodes.")
 

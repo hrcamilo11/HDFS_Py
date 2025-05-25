@@ -19,7 +19,7 @@ from protos import dfs_pb2, dfs_pb2_grpc, namenode_pb2, namenode_pb2_grpc
 app = typer.Typer()
 NAMENODE_URL = "http://localhost:8000"
 NAMENODE_GRPC = "localhost:50052"
-DATANODE_GRPC = "localhost:50051"
+# DATANODE_GRPC = "localhost:50051" # This will be derived dynamically
 
 # --- Utilidades ---
 def split_into_blocks(data: bytes, block_size=64*1024*1024):
@@ -48,9 +48,22 @@ def put(file_path: Path):
         loc_resp = stub.GetBlockLocations(namenode_pb2.BlockLocationRequest(block_id=block_id))
         locations = loc_resp.node_ids
         if locations:
-            stub_dn = get_datanode_stub(DATANODE_GRPC) # Aquí deberías mapear node_id a dirección real
-            stub_dn.StoreBlock(dfs_pb2.BlockRequest(content=block, block_id=block_id, replica_nodes=locations))
-            print(f"Bloque {block_id} enviado a {locations}")
+            # Choose the first datanode from the list for simplicity for now
+            chosen_datanode_id = locations[0]
+            try:
+                datanode_index = int(chosen_datanode_id.replace("datanode", "")) # Extracts N from "datanodeN"
+                datanode_port = 50052 + datanode_index # Base port 50053 for datanode1
+                datanode_address = f"localhost:{datanode_port}"
+                stub_dn = get_datanode_stub(datanode_address)
+                # Pass all locations for potential replication handling by the chosen datanode, though StoreBlock might only use the local one.
+                stub_dn.StoreBlock(dfs_pb2.BlockRequest(content=block, block_id=block_id, replica_nodes=locations))
+                print(f"Bloque {block_id} enviado a {chosen_datanode_id} ({datanode_address}) para almacenamiento y replicación en {locations}")
+            except ValueError:
+                print(f"Error: No se pudo determinar la dirección del DataNode desde el ID '{chosen_datanode_id}'. Se omite el envío del bloque {block_id}.")
+                continue
+            except grpc.RpcError as e:
+                print(f"Error al contactar DataNode {chosen_datanode_id} ({datanode_address}): {e}. Se omite el envío del bloque {block_id}.")
+                continue
     # Registrar archivo en NameNode
     stub.AddFile(namenode_pb2.AddFileRequest(file_path=str(file_path), block_ids=blocks))
     print(f"Archivo {file_path} registrado en NameNode")
@@ -73,10 +86,31 @@ def get(file_path: str, output_path: Path = None):
         loc_resp = stub.GetBlockLocations(namenode_pb2.BlockLocationRequest(block_id=block_id))
         locations = loc_resp.node_ids
         if locations:
-            stub_dn = get_datanode_stub(DATANODE_GRPC)
-            block_data = stub_dn.GetBlock(dfs_pb2.BlockRequest(block_id=block_id, content=b"", replica_nodes=[]))
-            data += block_data.content
-            print(f"Descargado bloque {block_id} desde {locations}")
+            # Try fetching from the first available datanode, then others if it fails
+            block_downloaded = False
+            for datanode_id_to_try in locations:
+                try:
+                    datanode_index = int(datanode_id_to_try.replace("datanode", ""))
+                    datanode_port = 50052 + datanode_index
+                    datanode_address = f"localhost:{datanode_port}"
+                    stub_dn = get_datanode_stub(datanode_address)
+                    block_data_resp = stub_dn.GetBlock(dfs_pb2.BlockRequest(block_id=block_id, content=b"", replica_nodes=[]))
+                    data += block_data_resp.content
+                    print(f"Descargado bloque {block_id} desde {datanode_id_to_try} ({datanode_address})")
+                    block_downloaded = True
+                    break # Successfully downloaded from this datanode
+                except ValueError:
+                    print(f"Error: No se pudo determinar la dirección del DataNode desde el ID '{datanode_id_to_try}'. Intentando con el siguiente.")
+                except grpc.RpcError as e:
+                    print(f"Error al descargar bloque {block_id} desde {datanode_id_to_try} ({datanode_address}): {e}. Intentando con el siguiente.")
+            if not block_downloaded:
+                print(f"Error: No se pudo descargar el bloque {block_id} desde ninguna de las ubicaciones: {locations}")
+                # Handle missing block case - perhaps raise an error or return partial data
+                break # Stop trying to reconstruct if a block is missing
+        else:
+            print(f"Error: No se encontraron ubicaciones para el bloque {block_id}")
+            # Handle missing block case
+            break # Stop trying to reconstruct if a block is missing
     if output_path:
         with open(output_path, "wb") as f:
             f.write(data)
