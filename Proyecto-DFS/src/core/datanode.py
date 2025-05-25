@@ -27,13 +27,53 @@ class DataNodeServicer(dfs_pb2_grpc.DataNodeServiceServicer):
         # Replicación a otros DataNodes
         from protos import dfs_pb2
         from protos import dfs_pb2_grpc
-        for replica_node in request.replica_nodes[1:]:  # El primero es el actual
-            try:
-                channel = grpc.insecure_channel(replica_node)
-                stub = dfs_pb2_grpc.DataNodeServiceStub(channel)
-                stub.StoreBlock(dfs_pb2.BlockRequest(content=request.content, block_id=request.block_id, replica_nodes=[]))
-            except Exception as e:
-                print(f"Error replicando bloque a {replica_node}: {e}")
+        # The first node in replica_nodes is the one that received the initial StoreBlock from the client.
+        # We need to identify which node *this* current DataNodeServicer instance is.
+        # This information isn't directly available in DataNodeServicer, so we'll assume this servicer
+        # is the one the client *thought* it was sending to, which is typically the first in the list.
+        # Or, more robustly, the NameNode should perhaps tell each DataNode *who* it is in the replication chain.
+        # For now, let's assume this DataNode is request.replica_nodes[0] if the list is not empty.
+        # The actual replication targets are the *other* nodes in the list.
+
+        # Determine the current node's ID to avoid self-replication if it's in the list beyond the first position
+        # This is tricky without knowing the current DataNode's ID within the servicer.
+        # Let's assume the client sends the block to the *first* node in replica_nodes, and that node then replicates to others.
+        
+        # The client sends replica_nodes like ['datanode1', 'datanode2', 'datanode3']
+        # If this is datanode1, it should replicate to datanode2 and datanode3.
+        # The request.replica_nodes passed to *this* StoreBlock call (from the client) contains all intended replicas.
+        # When this datanode (e.g. datanode1) calls StoreBlock on another (e.g. datanode2 for replication),
+        # it should pass an empty replica_nodes list, or a list that excludes datanode2 and datanode1, to prevent loops or further replication by datanode2 based on the original list.
+        # For simplicity in this step, the recursive StoreBlock calls will pass an empty replica_nodes list.
+
+        # Identify which node this is. We need the node_id of the current datanode.
+        # This is not directly available in the servicer. A simple approach is to assume this datanode is the first one
+        # in the list if the call comes from the client. If it's a replication call, replica_nodes should be empty.
+
+        if request.replica_nodes and len(request.replica_nodes) > 1:
+            # This assumes the current node is the first in the list and needs to replicate to others.
+            current_node_id_from_list = request.replica_nodes[0]
+            nodes_to_replicate_to = request.replica_nodes[1:]
+            
+            for replica_node_id in nodes_to_replicate_to:
+                try:
+                    # Derive address from replica_node_id (e.g., "datanode2" -> "localhost:50054")
+                    datanode_index = int(replica_node_id.replace("datanode", ""))
+                    datanode_port = 50052 + datanode_index # Base port 50053 for datanode1
+                    replica_address = f"localhost:{datanode_port}"
+                    
+                    channel = grpc.insecure_channel(replica_address)
+                    stub = dfs_pb2_grpc.DataNodeServiceStub(channel)
+                    # When replicating, send an empty replica_nodes list to prevent further replication by the next node based on the original list.
+                    print(f"Replicando bloque {request.block_id} desde (asumido) {current_node_id_from_list} a {replica_node_id} ({replica_address})")
+                    stub.StoreBlock(dfs_pb2.BlockRequest(content=request.content, block_id=request.block_id, replica_nodes=[]))
+                    print(f"Bloque {request.block_id} replicado exitosamente a {replica_node_id}")
+                except ValueError:
+                    print(f"Error: No se pudo determinar la dirección para replicar a DataNode ID '{replica_node_id}'.")
+                except grpc.RpcError as e:
+                    print(f"Error replicando bloque {request.block_id} a {replica_node_id}: {e}")
+                except Exception as e:
+                    print(f"Error inesperado replicando bloque {request.block_id} a {replica_node_id}: {e}")
         return dfs_pb2.StoreResponse(success=True, message="Bloque almacenado y replicado")
 
     def ReplicateBlock(self, request, context):
