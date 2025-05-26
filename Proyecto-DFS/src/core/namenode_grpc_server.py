@@ -74,8 +74,12 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
         return namenode_pb2.MoveResponse(success=success, message=message)
 
     def Login(self, request, context):
-        success, message = self.namenode.login_user(request.username)
+        success, message = self.namenode.login(request.username)
         return namenode_pb2.LoginResponse(success=success, message=message)
+
+    def Logout(self, request, context):
+        success, message = self.namenode.logout(request.username)
+        return namenode_pb2.LogoutResponse(success=success, message=message)
 
 def serve():
     port = '50052'

@@ -28,7 +28,8 @@ LOGGED_IN_USER = None
 # DATANODE_GRPC = "localhost:50051" # This will be derived dynamically
 
 # --- DFS Path Management ---
-_current_dfs_path_components: list[str] = [] # Represents root path /
+_current_dfs_path_components = []
+_current_user = None
 
 def get_current_dfs_display_path() -> str:
     """Returns the string representation of the current DFS path, e.g., /foo/bar or /."""
@@ -92,20 +93,53 @@ def get_namenode_stub(address):
 @app.command()
 def login(username: str = typer.Option(..., prompt=True, help="Username for DFS login")):
     """Logs in a user to the DFS."""
-    global LOGGED_IN_USER
+    global _current_user
     try:
         stub = get_namenode_stub(NAMENODE_GRPC)
         response = stub.Login(namenode_pb2.LoginRequest(username=username))
         if response.success:
-            LOGGED_IN_USER = username
+            _current_user = username
             print(f"Login exitoso para el usuario: {username}")
             print(f"Mensaje del NameNode: {response.message}")
         else:
+            _current_user = None
             print(f"Error de login: {response.message}")
     except grpc.RpcError as e:
+        _current_user = None
         print(f"Error de conexión con el NameNode para login: {e.details}")
     except Exception as e:
+        _current_user = None
         print(f"Ocurrió un error inesperado durante el login: {e}")
+
+
+@app.command()
+def logout():
+    """Logs out the current user from the DFS."""
+    global _current_user
+    if not _current_user:
+        print("No hay usuario logueado.")
+        return
+    try:
+        stub = get_namenode_stub(NAMENODE_GRPC)
+        resp = stub.Logout(namenode_pb2.LogoutRequest(username=_current_user))
+        if resp.success:
+            print(f"Logout exitoso para el usuario: {_current_user}")
+            print(f"Mensaje del NameNode: {resp.message}")
+            _current_user = None
+        else:
+            print(f"Error de logout: {resp.message}")
+    except grpc.RpcError as e:
+        print(f"Error de conexión al NameNode: {e.details()}")
+    except Exception as e:
+        print(f"Error inesperado durante el logout: {e}")
+
+@app.command()
+def whoami():
+    """Shows the currently logged-in user."""
+    if _current_user:
+        print(f"Usuario actual: {_current_user}")
+    else:
+        print("No hay usuario logueado.")
 
 # --- Comandos CLI ---
 @app.command()
@@ -375,6 +409,8 @@ class DFSCLI(cmd.Cmd):
     intro = 'Welcome to the DFS shell. Type help or ? to list commands.\n'
     prompt = 'DFS-CLI:/ > '
 
+
+
     def do_ls(self, arg):
         """List files and directories in the specified DFS path.
         Usage: ls [path]
@@ -460,94 +496,18 @@ class DFSCLI(cmd.Cmd):
             username = arg
         else:
             username = typer.prompt("Username")
-        app.run(login, args=[username])
+        login(username)
         self.update_prompt()
 
     def do_logout(self, arg):
         """logout - Logs out the current user from the DFS."""
-        app.run(logout)
+        logout()
+        self.do_login('') # Force login after logout
         self.update_prompt()
 
     def do_whoami(self, arg):
         """whoami - Shows the currently logged-in user."""
-        app.run(whoami)
-
-    def do_ls(self, arg):
-        """List files and directories in the specified DFS path.
-        Usage: ls [path]
-        """
-        try:
-            if arg:
-                app(['ls', arg])
-            else:
-                app(['ls'])
-        except SystemExit:
-            pass # typer exits after command, we don't want that in interactive mode
-
-    def do_cd(self, arg):
-        """Change the current DFS directory.
-        Usage: cd <path>
-        """
-        try:
-            app(['cd', arg])
-            self.prompt = f"DFS-CLI:{get_current_dfs_display_path()}> "
-        except SystemExit:
-            pass
-
-    def do_put(self, arg):
-        """Upload a local file to the DFS.
-        Usage: put <local_file_path>
-        """
-        try:
-            app(['put', arg])
-        except SystemExit:
-            pass
-
-    def do_get(self, arg):
-        """Download a file from the DFS to a local path.
-        Usage: get <dfs_file_path> [output_local_path]
-        """
-        try:
-            args = arg.split(maxsplit=1)
-            if len(args) == 2:
-                app(['get', args[0], args[1]])
-            elif len(args) == 1:
-                app(['get', args[0]])
-            else:
-                print("Usage: get <dfs_file_path> [output_local_path]")
-        except SystemExit:
-            pass
-
-    def do_rm(self, arg):
-        """Remove a file or directory from the DFS.
-        Usage: rm <dfs_path>
-        """
-        try:
-            app(['rm', arg])
-        except SystemExit:
-            pass
-
-    def do_mkdir(self, arg):
-        """Create a directory in the DFS.
-        Usage: mkdir <dfs_path>
-        """
-        try:
-            app(['mkdir', arg])
-        except SystemExit:
-            pass
-
-    def do_mv(self, arg):
-        """Move or rename a file or directory in the DFS.
-        Usage: mv <source_path> <destination_path>
-        """
-        try:
-            args = arg.split(maxsplit=1)
-            if len(args) == 2:
-                app(['mv', args[0], args[1]])
-            else:
-                print("Usage: mv <source_path> <destination_path>")
-        except SystemExit:
-            pass
+        whoami()
 
     def do_exit(self, arg):
         """exit - Exits the DFS CLI."""
@@ -557,11 +517,17 @@ class DFSCLI(cmd.Cmd):
         """quit - Exits the DFS CLI."""
         return True
 
+    def update_prompt(self):
+        """Updates the prompt to reflect the current DFS path and logged-in user."""
+        user_info = f"({_current_user})" if _current_user else ""
+        self.prompt = f"DFS-CLI:{get_current_dfs_display_path()}{user_info}> "
+
     def preloop(self):
         """Called once before the command loop starts."""
         print("Bienvenido al DFS CLI. Por favor, inicie sesión con el comando 'login'.")
+        self.update_prompt()
         # Optionally, prompt for login immediately
-        # self.do_login('') # This would force a login prompt at startup
+        self.do_login('') # This would force a login prompt at startup
 
 if __name__ == "__main__":
     cli = DFSCLI()

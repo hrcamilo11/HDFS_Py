@@ -13,6 +13,7 @@ service NameNodeService {
     rpc RemoveFile (RemoveFileRequest) returns (RemoveFileResponse);
     rpc Move (MoveRequest) returns (MoveResponse); // Nuevo RPC para mv
     rpc Login (LoginRequest) returns (LoginResponse);
+    rpc Logout (LogoutRequest) returns (LogoutResponse);
 }
 
 message RegisterRequest {
@@ -103,6 +104,15 @@ message LoginRequest {
 }
 
 message LoginResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message LogoutRequest {
+    string username = 1;
+}
+
+message LogoutResponse {
     bool success = 1;
     string message = 2;
 }

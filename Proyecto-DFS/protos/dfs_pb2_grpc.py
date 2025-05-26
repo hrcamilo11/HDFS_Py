@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import protos.dfs_pb2 as dfs__pb2
+from protos import dfs_pb2 as protos_dot_dfs__pb2
 
 GRPC_GENERATED_VERSION = '1.71.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in dfs_pb2_grpc.py depends on'
+        + f' but the generated code in protos/dfs_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,18 +36,18 @@ class DataNodeServiceStub(object):
         """
         self.StoreBlock = channel.unary_unary(
                 '/DataNodeService/StoreBlock',
-                request_serializer=dfs__pb2.BlockRequest.SerializeToString,
-                response_deserializer=dfs__pb2.StoreResponse.FromString,
+                request_serializer=protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+                response_deserializer=protos_dot_dfs__pb2.StoreResponse.FromString,
                 _registered_method=True)
         self.ReplicateBlock = channel.unary_unary(
                 '/DataNodeService/ReplicateBlock',
-                request_serializer=dfs__pb2.BlockRequest.SerializeToString,
-                response_deserializer=dfs__pb2.StoreResponse.FromString,
+                request_serializer=protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+                response_deserializer=protos_dot_dfs__pb2.StoreResponse.FromString,
                 _registered_method=True)
         self.GetBlock = channel.unary_unary(
                 '/DataNodeService/GetBlock',
-                request_serializer=dfs__pb2.BlockRequest.SerializeToString,
-                response_deserializer=dfs__pb2.BlockDataResponse.FromString,
+                request_serializer=protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+                response_deserializer=protos_dot_dfs__pb2.BlockDataResponse.FromString,
                 _registered_method=True)
 
 
@@ -78,18 +78,18 @@ def add_DataNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'StoreBlock': grpc.unary_unary_rpc_method_handler(
                     servicer.StoreBlock,
-                    request_deserializer=dfs__pb2.BlockRequest.FromString,
-                    response_serializer=dfs__pb2.StoreResponse.SerializeToString,
+                    request_deserializer=protos_dot_dfs__pb2.BlockRequest.FromString,
+                    response_serializer=protos_dot_dfs__pb2.StoreResponse.SerializeToString,
             ),
             'ReplicateBlock': grpc.unary_unary_rpc_method_handler(
                     servicer.ReplicateBlock,
-                    request_deserializer=dfs__pb2.BlockRequest.FromString,
-                    response_serializer=dfs__pb2.StoreResponse.SerializeToString,
+                    request_deserializer=protos_dot_dfs__pb2.BlockRequest.FromString,
+                    response_serializer=protos_dot_dfs__pb2.StoreResponse.SerializeToString,
             ),
             'GetBlock': grpc.unary_unary_rpc_method_handler(
                     servicer.GetBlock,
-                    request_deserializer=dfs__pb2.BlockRequest.FromString,
-                    response_serializer=dfs__pb2.BlockDataResponse.SerializeToString,
+                    request_deserializer=protos_dot_dfs__pb2.BlockRequest.FromString,
+                    response_serializer=protos_dot_dfs__pb2.BlockDataResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -117,8 +117,8 @@ class DataNodeService(object):
             request,
             target,
             '/DataNodeService/StoreBlock',
-            dfs__pb2.BlockRequest.SerializeToString,
-            dfs__pb2.StoreResponse.FromString,
+            protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+            protos_dot_dfs__pb2.StoreResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -144,8 +144,8 @@ class DataNodeService(object):
             request,
             target,
             '/DataNodeService/ReplicateBlock',
-            dfs__pb2.BlockRequest.SerializeToString,
-            dfs__pb2.StoreResponse.FromString,
+            protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+            protos_dot_dfs__pb2.StoreResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -171,8 +171,8 @@ class DataNodeService(object):
             request,
             target,
             '/DataNodeService/GetBlock',
-            dfs__pb2.BlockRequest.SerializeToString,
-            dfs__pb2.BlockDataResponse.FromString,
+            protos_dot_dfs__pb2.BlockRequest.SerializeToString,
+            protos_dot_dfs__pb2.BlockDataResponse.FromString,
             options,
             channel_credentials,
             insecure,

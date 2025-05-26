@@ -204,16 +204,20 @@ class NameNode:
                 print(f"Archivo '{canonical_source}' movido a '{final_target_path}'.")
                 return True, final_target_path # Devuelve la ruta final donde se movió.
 
-    def login_user(self, username: str):
+    def login(self, username: str) -> tuple[bool, str]:
         with self.lock:
-            current_time = time.time()
+            # En un sistema real, aquí se verificarían credenciales.
+            # Por ahora, simplemente registramos al usuario como activo.
+            self.active_users[username] = time.time()
+            return True, f"Nuevo usuario '{username}' ha iniciado sesión."
+
+    def logout(self, username: str) -> tuple[bool, str]:
+        with self.lock:
             if username in self.active_users:
-                message = f"Usuario '{username}' ya estaba activo. Actualizando tiempo de login."
+                del self.active_users[username]
+                return True, f"Usuario '{username}' ha cerrado sesión."
             else:
-                message = f"Nuevo usuario '{username}' ha iniciado sesión."
-            self.active_users[username] = current_time
-            print(f"[NameNode] Alerta: {message} Usuarios activos: {len(self.active_users)}")
-            return True, message
+                return False, f"Usuario '{username}' no estaba logueado."
 
     def rm(self, file_path):
         with self.lock:
