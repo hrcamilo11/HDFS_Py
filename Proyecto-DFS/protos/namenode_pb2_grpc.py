@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import namenode_pb2 as namenode__pb2
+import protos.namenode_pb2 as namenode__pb2
 
 GRPC_GENERATED_VERSION = '1.71.0'
 GRPC_VERSION = grpc.__version__
@@ -84,6 +84,16 @@ class NameNodeServiceStub(object):
                 request_serializer=namenode__pb2.RemoveFileRequest.SerializeToString,
                 response_deserializer=namenode__pb2.RemoveFileResponse.FromString,
                 _registered_method=True)
+        self.Move = channel.unary_unary(
+                '/NameNodeService/Move',
+                request_serializer=namenode__pb2.MoveRequest.SerializeToString,
+                response_deserializer=namenode__pb2.MoveResponse.FromString,
+                _registered_method=True)
+        self.Login = channel.unary_unary(
+                '/NameNodeService/Login',
+                request_serializer=namenode__pb2.LoginRequest.SerializeToString,
+                response_deserializer=namenode__pb2.LoginResponse.FromString,
+                _registered_method=True)
 
 
 class NameNodeServiceServicer(object):
@@ -149,6 +159,19 @@ class NameNodeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Move(self, request, context):
+        """Nuevo RPC para mv
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Login(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -201,6 +224,16 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
                     servicer.RemoveFile,
                     request_deserializer=namenode__pb2.RemoveFileRequest.FromString,
                     response_serializer=namenode__pb2.RemoveFileResponse.SerializeToString,
+            ),
+            'Move': grpc.unary_unary_rpc_method_handler(
+                    servicer.Move,
+                    request_deserializer=namenode__pb2.MoveRequest.FromString,
+                    response_serializer=namenode__pb2.MoveResponse.SerializeToString,
+            ),
+            'Login': grpc.unary_unary_rpc_method_handler(
+                    servicer.Login,
+                    request_deserializer=namenode__pb2.LoginRequest.FromString,
+                    response_serializer=namenode__pb2.LoginResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -473,6 +506,60 @@ class NameNodeService(object):
             '/NameNodeService/RemoveFile',
             namenode__pb2.RemoveFileRequest.SerializeToString,
             namenode__pb2.RemoveFileResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Move(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/NameNodeService/Move',
+            namenode__pb2.MoveRequest.SerializeToString,
+            namenode__pb2.MoveResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Login(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/NameNodeService/Login',
+            namenode__pb2.LoginRequest.SerializeToString,
+            namenode__pb2.LoginResponse.FromString,
             options,
             channel_credentials,
             insecure,

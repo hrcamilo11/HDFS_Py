@@ -16,9 +16,15 @@ import sys
 # sys.path.append(os.path.join(os.path.dirname(__file__), '../core')) 
 from protos import dfs_pb2, dfs_pb2_grpc, namenode_pb2, namenode_pb2_grpc
 
+import cmd
+import time
+
 app = typer.Typer()
 NAMENODE_URL = "http://localhost:8000"
 NAMENODE_GRPC = "localhost:50052"
+
+# Global variable to store the logged-in username
+LOGGED_IN_USER = None
 # DATANODE_GRPC = "localhost:50051" # This will be derived dynamically
 
 # --- DFS Path Management ---
@@ -82,6 +88,24 @@ def get_datanode_stub(address):
 def get_namenode_stub(address):
     channel = grpc.insecure_channel(address)
     return namenode_pb2_grpc.NameNodeServiceStub(channel)
+
+@app.command()
+def login(username: str = typer.Option(..., prompt=True, help="Username for DFS login")):
+    """Logs in a user to the DFS."""
+    global LOGGED_IN_USER
+    try:
+        stub = get_namenode_stub(NAMENODE_GRPC)
+        response = stub.Login(namenode_pb2.LoginRequest(username=username))
+        if response.success:
+            LOGGED_IN_USER = username
+            print(f"Login exitoso para el usuario: {username}")
+            print(f"Mensaje del NameNode: {response.message}")
+        else:
+            print(f"Error de login: {response.message}")
+    except grpc.RpcError as e:
+        print(f"Error de conexión con el NameNode para login: {e.details}")
+    except Exception as e:
+        print(f"Ocurrió un error inesperado durante el login: {e}")
 
 # --- Comandos CLI ---
 @app.command()
@@ -300,5 +324,245 @@ def cd(dir_path: str):
     except Exception as e:
         print(f"Error al cambiar de directorio: {e}")
 
+@app.command()
+def mv(source_path: str, destination_path: str):
+    """Mueve un archivo o directorio (source_path) a una nueva ubicación (destination_path) en el DFS."""
+    global _current_dfs_path_components
+    try:
+        # Normalizar la ruta de origen con respecto a la ruta actual
+        source_components = _normalize_path_to_components(source_path, _current_dfs_path_components)
+        dfs_source_path = "/" + "/".join(source_components) if source_components else "/"
+        if not source_components or dfs_source_path == "/":
+            print(f"Error: La ruta de origen '{source_path}' (resuelta a '{dfs_source_path}') no es válida para 'mv'.")
+            return
+
+        # Normalizar la ruta de destino con respecto a la ruta actual
+        dest_components = _normalize_path_to_components(destination_path, _current_dfs_path_components)
+        # Si dest_components está vacío, significa que el destino es la raíz, lo cual es manejado por el NameNode.
+        # Si destination_path era solo "/", dest_components será [].
+        # Si destination_path era "." y estábamos en la raíz, dest_components será [].
+        # Si destination_path era ".." y estábamos en la raíz, dest_components será [].
+        # El NameNode _canonical_dfs_path se encargará de convertir esto a "/" si es necesario.
+        dfs_destination_path = "/" + "/".join(dest_components) if dest_components else "/"
+        
+        # No permitir mover a sí mismo (simplificación, el NameNode podría tener una lógica más robusta)
+        if dfs_source_path == dfs_destination_path:
+            print(f"Error: La ruta de origen y destino son la misma ('{dfs_source_path}').")
+            return
+
+        stub = get_namenode_stub(NAMENODE_GRPC)
+        resp = stub.Move(namenode_pb2.MoveRequest(source_path=dfs_source_path, destination_path=dfs_destination_path))
+        
+        if resp.success:
+            print(f"'{dfs_source_path}' movido exitosamente a '{resp.message}'.") # resp.message contendrá la ruta final
+        else:
+            print(f"Error al mover '{dfs_source_path}' a '{dfs_destination_path}': {resp.message}")
+            
+    except grpc.RpcError as e:
+        # Capturar errores específicos de gRPC para dar mensajes más claros
+        status_code = e.code()
+        details = e.details()
+        if status_code == grpc.StatusCode.UNAVAILABLE:
+            print(f"Error de conexión: No se pudo conectar al NameNode en {NAMENODE_GRPC}. Detalles: {details}")
+        elif status_code == grpc.StatusCode.NOT_FOUND:
+            print(f"Error: El NameNode no encontró el método 'Move'. ¿Está el servidor actualizado y el .proto compilado? Detalles: {details}")
+        else:
+            print(f"Error de RPC al mover: {status_code} - {details}")
+    except Exception as e:
+        print(f"Error al procesar el comando 'mv' para '{source_path}' -> '{destination_path}': {e}")
+
+class DFSCLI(cmd.Cmd):
+    intro = 'Welcome to the DFS shell. Type help or ? to list commands.\n'
+    prompt = 'DFS-CLI:/ > '
+
+    def do_ls(self, arg):
+        """List files and directories in the specified DFS path.
+        Usage: ls [path]
+        """
+        try:
+            if arg:
+                app(['ls', arg])
+            else:
+                app(['ls'])
+        except SystemExit:
+            pass # typer exits after command, we don't want that in interactive mode
+
+    def do_cd(self, arg):
+        """Change the current DFS directory.
+        Usage: cd <path>
+        """
+        try:
+            app(['cd', arg])
+            self.prompt = f"DFS-CLI:{get_current_dfs_display_path()}> "
+        except SystemExit:
+            pass
+
+    def do_put(self, arg):
+        """Upload a local file to the DFS.
+        Usage: put <local_file_path>
+        """
+        try:
+            app(['put', arg])
+        except SystemExit:
+            pass
+
+    def do_get(self, arg):
+        """Download a file from the DFS to a local path.
+        Usage: get <dfs_file_path> [output_local_path]
+        """
+        try:
+            args = arg.split(maxsplit=1)
+            if len(args) == 2:
+                app(['get', args[0], args[1]])
+            elif len(args) == 1:
+                app(['get', args[0]])
+            else:
+                print("Usage: get <dfs_file_path> [output_local_path]")
+        except SystemExit:
+            pass
+
+    def do_rm(self, arg):
+        """Remove a file or directory from the DFS.
+        Usage: rm <dfs_path>
+        """
+        try:
+            app(['rm', arg])
+        except SystemExit:
+            pass
+
+    def do_mkdir(self, arg):
+        """Create a directory in the DFS.
+        Usage: mkdir <dfs_path>
+        """
+        try:
+            app(['mkdir', arg])
+        except SystemExit:
+            pass
+
+    def do_mv(self, arg):
+        """Move or rename a file or directory in the DFS.
+        Usage: mv <source_path> <destination_path>
+        """
+        try:
+            args = arg.split(maxsplit=1)
+            if len(args) == 2:
+                app(['mv', args[0], args[1]])
+            else:
+                print("Usage: mv <source_path> <destination_path>")
+        except SystemExit:
+            pass
+
+    def do_login(self, arg):
+        """login <username> - Logs in a user to the DFS.
+        If no username is provided, it will prompt for it.
+        """
+        if arg:
+            username = arg
+        else:
+            username = typer.prompt("Username")
+        app.run(login, args=[username])
+        self.update_prompt()
+
+    def do_logout(self, arg):
+        """logout - Logs out the current user from the DFS."""
+        app.run(logout)
+        self.update_prompt()
+
+    def do_whoami(self, arg):
+        """whoami - Shows the currently logged-in user."""
+        app.run(whoami)
+
+    def do_ls(self, arg):
+        """List files and directories in the specified DFS path.
+        Usage: ls [path]
+        """
+        try:
+            if arg:
+                app(['ls', arg])
+            else:
+                app(['ls'])
+        except SystemExit:
+            pass # typer exits after command, we don't want that in interactive mode
+
+    def do_cd(self, arg):
+        """Change the current DFS directory.
+        Usage: cd <path>
+        """
+        try:
+            app(['cd', arg])
+            self.prompt = f"DFS-CLI:{get_current_dfs_display_path()}> "
+        except SystemExit:
+            pass
+
+    def do_put(self, arg):
+        """Upload a local file to the DFS.
+        Usage: put <local_file_path>
+        """
+        try:
+            app(['put', arg])
+        except SystemExit:
+            pass
+
+    def do_get(self, arg):
+        """Download a file from the DFS to a local path.
+        Usage: get <dfs_file_path> [output_local_path]
+        """
+        try:
+            args = arg.split(maxsplit=1)
+            if len(args) == 2:
+                app(['get', args[0], args[1]])
+            elif len(args) == 1:
+                app(['get', args[0]])
+            else:
+                print("Usage: get <dfs_file_path> [output_local_path]")
+        except SystemExit:
+            pass
+
+    def do_rm(self, arg):
+        """Remove a file or directory from the DFS.
+        Usage: rm <dfs_path>
+        """
+        try:
+            app(['rm', arg])
+        except SystemExit:
+            pass
+
+    def do_mkdir(self, arg):
+        """Create a directory in the DFS.
+        Usage: mkdir <dfs_path>
+        """
+        try:
+            app(['mkdir', arg])
+        except SystemExit:
+            pass
+
+    def do_mv(self, arg):
+        """Move or rename a file or directory in the DFS.
+        Usage: mv <source_path> <destination_path>
+        """
+        try:
+            args = arg.split(maxsplit=1)
+            if len(args) == 2:
+                app(['mv', args[0], args[1]])
+            else:
+                print("Usage: mv <source_path> <destination_path>")
+        except SystemExit:
+            pass
+
+    def do_exit(self, arg):
+        """exit - Exits the DFS CLI."""
+        return True
+
+    def do_quit(self, arg):
+        """quit - Exits the DFS CLI."""
+        return True
+
+    def preloop(self):
+        """Called once before the command loop starts."""
+        print("Bienvenido al DFS CLI. Por favor, inicie sesión con el comando 'login'.")
+        # Optionally, prompt for login immediately
+        # self.do_login('') # This would force a login prompt at startup
+
 if __name__ == "__main__":
-    app()
+    cli = DFSCLI()
+    cli.cmdloop()

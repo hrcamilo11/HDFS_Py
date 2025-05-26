@@ -11,7 +11,8 @@ import threading
 import time
 import os
 from concurrent import futures
-from protos import dfs_pb2_grpc, dfs_pb2
+import protos.dfs_pb2_grpc as dfs_pb2_grpc
+import protos.dfs_pb2 as dfs_pb2
 # Ensure PROJECT_ROOT is in sys.path for 'from protos import ...' to work
 # This is already handled at the top of the file.
 
@@ -24,9 +25,7 @@ class DataNodeServicer(dfs_pb2_grpc.DataNodeServiceServicer):
         block_path = os.path.join(self.storage_dir, request.block_id)
         with open(block_path, "wb") as f:
             f.write(request.content)
-        # Replicación a otros DataNodes
-        from protos import dfs_pb2
-        from protos import dfs_pb2_grpc
+
         # The first node in replica_nodes is the one that received the initial StoreBlock from the client.
         # We need to identify which node *this* current DataNodeServicer instance is.
         # This information isn't directly available in DataNodeServicer, so we'll assume this servicer

@@ -10,7 +10,9 @@ import grpc
 from concurrent import futures
 import time
 from src.core.namenode import NameNode
-from protos import namenode_pb2_grpc, namenode_pb2, dfs_pb2
+import protos.namenode_pb2_grpc as namenode_pb2_grpc
+import protos.namenode_pb2 as namenode_pb2
+import protos.dfs_pb2 as dfs_pb2
 import threading
 
 class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
@@ -63,11 +65,24 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
         self.namenode.rm(request.file_path)
         return namenode_pb2.RemoveFileResponse(success=True)
 
+    def GetFileContent(self, request, context):
+        content = self.namenode.get_file_content(request.file_path)
+        return namenode_pb2.FileContentResponse(content=content)
+
+    def Move(self, request, context):
+        success, message = self.namenode.mv(request.source_path, request.destination_path)
+        return namenode_pb2.MoveResponse(success=success, message=message)
+
+    def Login(self, request, context):
+        success, message = self.namenode.login_user(request.username)
+        return namenode_pb2.LoginResponse(success=success, message=message)
+
 def serve():
+    port = '50052'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     namenode_pb2_grpc.add_NameNodeServiceServicer_to_server(NameNodeService(), server)
-    server.add_insecure_port('[::]:50052')
-    print('NameNode gRPC server iniciado en puerto 50052')
+    server.add_insecure_port('[::]:' + port)
+    print(f'NameNode gRPC server iniciado en puerto {port}')
     server.start()
     try:
         while True:

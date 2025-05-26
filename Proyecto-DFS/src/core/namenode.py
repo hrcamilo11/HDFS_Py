@@ -39,6 +39,7 @@ class NameNode:
         self.replication_factor = replication_factor
         self.block_size_mb = block_size_mb
         self.lock = threading.Lock()
+        self.active_users = {} # {username: last_login_time}
 
     def register_datanode(self, node_id):
         with self.lock:
@@ -137,6 +138,82 @@ class NameNode:
                 if parent_dir_of_item == query_canonical_path:
                     results.append(posixpath.basename(item_canonical_path))
             return sorted(list(set(results)))
+
+    def mv(self, source_path_str: str, destination_path_str: str):
+        with self.lock:
+            canonical_source = self._canonical_dfs_path(source_path_str)
+            canonical_dest = self._canonical_dfs_path(destination_path_str)
+
+            if canonical_source == "/":
+                return False, "No se puede mover el directorio raíz '/' ."
+            if canonical_dest == "/": # Mover a la raíz es permitido, pero el destino final será /nombre_del_origen
+                final_target_path = self._canonical_dfs_path(posixpath.join("/", posixpath.basename(canonical_source)))
+            else:
+                final_target_path = canonical_dest
+
+            # Verificar si el origen existe
+            if canonical_source not in self.block_map:
+                return False, f"La ruta de origen '{canonical_source}' no existe."
+
+            # Verificar si el destino es un subdirectorio del origen (para directorios)
+            if self.block_map[canonical_source] == [] and final_target_path.startswith(canonical_source + '/') : # Es un directorio
+                return False, f"No se puede mover un directorio ('{canonical_source}') a un subdirectorio de sí mismo ('{final_target_path}')."
+
+            # Verificar si el destino ya existe (si no es el mismo que el origen después de la normalización)
+            # Esta condición es compleja porque si final_target_path es un directorio, queremos mover *dentro* de él.
+            # Si final_target_path es un archivo, es un error.
+            # Si final_target_path no existe, está bien.
+
+            # Primero, determinamos la ruta de destino *efectiva*.
+            effective_final_target_path = final_target_path
+            if final_target_path in self.block_map and self.block_map[final_target_path] == []: # Si el destino es un directorio existente
+                effective_final_target_path = self._canonical_dfs_path(posixpath.join(final_target_path, posixpath.basename(canonical_source)))
+            
+            if effective_final_target_path in self.block_map and effective_final_target_path != canonical_source:
+                 return False, f"La ruta de destino '{effective_final_target_path}' ya existe."
+
+            # Actualizamos final_target_path para que sea la ruta efectiva donde se moverá el item.
+            final_target_path = effective_final_target_path
+
+            # Lógica de movimiento
+            if self.block_map[canonical_source] == []: # Es un directorio
+                # Mover el directorio en sí
+                self.block_map[final_target_path] = []
+                del self.block_map[canonical_source]
+
+                # Mover todos los elementos hijos
+                # Necesitamos iterar sobre una copia de las claves si vamos a modificar el diccionario
+                items_to_move = []
+                for item_path in list(self.block_map.keys()):
+                    if item_path.startswith(canonical_source + '/'):
+                        items_to_move.append(item_path)
+                
+                for old_item_path in items_to_move:
+                    # Construir la nueva ruta para el item hijo
+                    # Ejemplo: source=/a/b, item_path=/a/b/c/d.txt, final_target_path=/x/y (que es el nuevo /a/b)
+                    # new_item_path debe ser /x/y/c/d.txt
+                    relative_to_source = posixpath.relpath(old_item_path, canonical_source)
+                    new_item_path = posixpath.join(final_target_path, relative_to_source)
+                    new_item_path_canonical = self._canonical_dfs_path(new_item_path)
+
+                    self.block_map[new_item_path_canonical] = self.block_map.pop(old_item_path)
+                print(f"Directorio '{canonical_source}' y su contenido movido a '{final_target_path}'.")
+                return True, final_target_path # Devuelve la ruta final donde se movió.
+            else: # Es un archivo
+                self.block_map[final_target_path] = self.block_map.pop(canonical_source)
+                print(f"Archivo '{canonical_source}' movido a '{final_target_path}'.")
+                return True, final_target_path # Devuelve la ruta final donde se movió.
+
+    def login_user(self, username: str):
+        with self.lock:
+            current_time = time.time()
+            if username in self.active_users:
+                message = f"Usuario '{username}' ya estaba activo. Actualizando tiempo de login."
+            else:
+                message = f"Nuevo usuario '{username}' ha iniciado sesión."
+            self.active_users[username] = current_time
+            print(f"[NameNode] Alerta: {message} Usuarios activos: {len(self.active_users)}")
+            return True, message
 
     def rm(self, file_path):
         with self.lock:

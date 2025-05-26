@@ -10,7 +10,7 @@ import time
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from src.core.datanode import DataNode # Asegúrate que esta importación sea correcta
+from src.core.datanode import DataNode
 
 def start_datanode_process(node_id, port, namenode_addr, storage_base_dir):
     """Inicia un proceso DataNode."""
@@ -33,13 +33,16 @@ def start_datanode_process(node_id, port, namenode_addr, storage_base_dir):
     cmd = [
         sys.executable, # Path al interprete de Python actual
         "-c", 
-        f"import sys; sys.path.insert(0, r'{PROJECT_ROOT}'); from src.core.datanode import DataNode; dn = DataNode(node_id='{node_id}', grpc_port={port}, namenode_host='{namenode_addr}', storage_dir=r'{storage_dir}'); dn.start()"
+        f"import sys; sys.path.insert(0, r'{PROJECT_ROOT}'); import protos.dfs_pb2_grpc as dfs_pb2_grpc; import protos.dfs_pb2 as dfs_pb2; from src.core.datanode import DataNode; dn = DataNode(node_id='{node_id}', grpc_port={port}, namenode_host='{namenode_addr}', storage_dir=r'{storage_dir}'); dn.start()"
     ]
     
     print(f"Iniciando DataNode {node_id} en puerto {port} con almacenamiento en {storage_dir}...")
     # Para Windows, es mejor no usar Popen con start_new_session si quieres que las ventanas de consola aparezcan
     # o si quieres gestionarlos más fácilmente. subprocess.CREATE_NEW_CONSOLE abre una nueva ventana.
     process = subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    print(f"DataNode {node_id} iniciado con PID: {process.pid}")
+    with open("datanode_pids.txt", "a") as f:
+        f.write(str(process.pid) + "\n")
     return process
 
 if __name__ == "__main__":
@@ -75,7 +78,7 @@ if __name__ == "__main__":
         time.sleep(1) # Dar un pequeño respiro entre inicios
 
     print(f"\n{args.num_datanodes} DataNode(s) iniciados.")
-    print("Presiona Ctrl+C en esta ventana para intentar terminar los procesos DataNode (puede que necesites cerrarlos manualmente desde sus consolas).")
+    print("Presiona Ctrl+C en esta ventana para terminar los procesos DataNode.")
 
     try:
         while True:
@@ -88,26 +91,22 @@ if __name__ == "__main__":
                     print(f"El proceso DataNode {i+1} (PID: {p.pid}) ha terminado con código {p.returncode}.")
                     all_running = False
             if not all_running:
-                print("Uno o más procesos DataNode han terminado.")
-                # break # Descomentar si quieres que este script termine cuando un datanode cae
+                print("Uno o más procesos DataNodes han terminado inesperadamente.")
+                break # Salir del bucle si un DataNode termina inesperadamente
 
     except KeyboardInterrupt:
-        print("\nCerrando DataNodes...")
-        for p in processes:
-            try:
-                # En Windows, terminar un proceso de consola de esta manera puede ser complicado.
-                # p.terminate() o p.kill() podrían no cerrar la ventana de consola.
-                # Se podría necesitar taskkill /PID <pid> /F /T
-                print(f"Intentando terminar DataNode PID: {p.pid}")
-                p.terminate() # Envía SIGTERM
-                # Esperar un poco y luego matar si sigue vivo
-                try:
-                    p.wait(timeout=5) # Esperar 5 segundos
-                except subprocess.TimeoutExpired:
-                    print(f"DataNode PID: {p.pid} no terminó, forzando cierre...")
-                    p.kill() # Envía SIGKILL
-                    p.wait() # Esperar a que realmente muera
-                print(f"DataNode PID: {p.pid} terminado con código {p.returncode}.")
-            except Exception as e:
-                print(f"Error al terminar el proceso {p.pid}: {e}")
-        print("Todos los DataNodes han sido señalados para terminar.")
+        print("\nSeñal de interrupción recibida. Intentando detener DataNodes...")
+        # Llamar al script stop_datanodes.py para manejar la terminación
+        try:
+            subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "stop_datanodes.py")], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error al ejecutar stop_datanodes.py: {e}")
+        except FileNotFoundError:
+            print("Error: stop_datanodes.py no encontrado. Asegúrate de que el path sea correcto.")
+        print("Proceso de terminación de DataNodes iniciado.")
+
+    finally:
+        # Asegurarse de limpiar el archivo de PIDs si el script termina por cualquier otra razón
+        if os.path.exists("datanode_pids.txt"):
+            os.remove("datanode_pids.txt")
+            print("Archivo de PIDs limpiado al finalizar run_datanodes.py.")
