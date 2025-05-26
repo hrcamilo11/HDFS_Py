@@ -2,8 +2,36 @@ import time
 import threading
 import random
 import os
+import posixpath
 
 class NameNode:
+    def _canonical_dfs_path(self, path_str: str) -> str:
+        """
+        Normalizes a DFS-style path to a canonical form:
+        - Uses forward slashes '/'.
+        - Is absolute (starts with '/').
+        - Resolves '.' and '..' components (via posixpath.normpath).
+        - No trailing slash unless it's the root '/'.
+        - Multiple slashes are collapsed.
+        """
+        if not path_str:
+            # This case should ideally be handled by client sending valid paths
+            # or be an error, but for safety, default to root.
+            return "/"
+
+        # Ensure path starts with / if it's not already, as all paths in DFS are absolute from root.
+        temp_path = path_str
+        if not temp_path.startswith('/'):
+            temp_path = '/' + temp_path
+        
+        # Use posixpath.normpath for normalization. It always uses '/' as separator.
+        canonical = posixpath.normpath(temp_path)
+        
+        # posixpath.normpath("/") is "/"
+        # posixpath.normpath("/foo/./bar//baz/../qux") is "/foo/bar/qux"
+        # posixpath.normpath("/../foo") is "/foo" (handles '..' at root correctly)
+        return canonical
+
     def __init__(self, replication_factor=3, block_size_mb=64):
         self.block_map = {}  # {file_path: [block_ids]}
         self.block_locations = {}  # {block_id: [node_id]}
@@ -49,98 +77,100 @@ class NameNode:
             return block_ids
 
     def get_block_locations(self, block_id):
-        with self.lock: # Acceso seguro a block_locations
+        with self.lock:
             return self.block_locations.get(block_id, [])
 
     def get_file_blocks(self, file_path):
-        with self.lock: # Acceso seguro a block_map
-            return self.block_map.get(file_path, [])
+        with self.lock:
+            canonical_path = self._canonical_dfs_path(file_path)
+            return self.block_map.get(canonical_path, [])
 
     def add_file(self, file_path, block_ids):
-        with self.lock: # Acceso seguro a block_map
-            self.block_map[file_path] = block_ids 
+        with self.lock:
+            canonical_path = self._canonical_dfs_path(file_path)
+            if canonical_path in self.block_map and self.block_map[canonical_path] == []:
+                raise Exception(f"No se puede crear el archivo '{canonical_path}' porque ya existe un directorio con ese nombre.")
+            self.block_map[canonical_path] = block_ids
 
     def mkdir(self, dir_path):
         with self.lock:
-            normalized_path = os.path.normpath(dir_path)
-            if normalized_path in self.block_map:
-                raise Exception(f"El directorio o archivo '{normalized_path}' ya existe.")
-            self.block_map[normalized_path] = [] # Representa un directorio vacío
+            canonical_path = self._canonical_dfs_path(dir_path)
+            if canonical_path in self.block_map:
+                # Check if it's a file or directory
+                if self.block_map[canonical_path] == []:
+                    raise Exception(f"El directorio '{canonical_path}' ya existe.")
+                else:
+                    raise Exception(f"No se puede crear el directorio '{canonical_path}' porque ya existe un archivo con ese nombre.")
+            self.block_map[canonical_path] = [] # Represents a directory
 
     def rmdir(self, dir_path):
         with self.lock:
-            normalized_path = os.path.normpath(dir_path)
-            if normalized_path not in self.block_map:
-                 raise Exception(f"El directorio '{normalized_path}' no existe.")
-            if self.block_map[normalized_path] != []: # No es un directorio o no está vacío según nuestra convención
-                raise Exception(f"La ruta '{normalized_path}' no es un directorio vacío (puede ser un archivo o un directorio con contenido de bloques).")
-            
-            # Verificar si hay elementos dentro de este directorio
-            # Un directorio se considera vacío si no hay claves en block_map que comiencen con dir_path + separador
-            prefix_to_check = normalized_path + os.sep
-            if normalized_path == "." or normalized_path == "/": # Manejo especial para raíz
-                prefix_to_check = os.sep if normalized_path == "/" else ""
+            canonical_dir_to_delete = self._canonical_dfs_path(dir_path)
 
-            children = [
-                item for item in self.block_map.keys() 
-                if item.startswith(prefix_to_check) and item != normalized_path # Excluirse a sí mismo
-            ]
+            if canonical_dir_to_delete not in self.block_map:
+                raise Exception(f"El directorio '{canonical_dir_to_delete}' no existe.")
+            
+            if self.block_map[canonical_dir_to_delete] != []: # Check if it's marked as a directory
+                raise Exception(f"La ruta '{canonical_dir_to_delete}' no es un directorio.")
+
+            # Check if the directory is empty
+            children = []
+            for item_path in self.block_map.keys():
+                if item_path == canonical_dir_to_delete:
+                    continue
+                parent_of_item = posixpath.dirname(item_path)
+                if parent_of_item == canonical_dir_to_delete:
+                    children.append(posixpath.basename(item_path))
+            
             if children:
-                raise Exception(f"El directorio '{normalized_path}' no está vacío. Contiene: {children}")
-            del self.block_map[normalized_path]
+                raise Exception(f"El directorio '{canonical_dir_to_delete}' no está vacío. Contiene: {children}")
+            
+            del self.block_map[canonical_dir_to_delete]
+            print(f"Directorio '{canonical_dir_to_delete}' eliminado.")
 
     def ls(self, dir_path):
         with self.lock:
-            normalized_query_path = os.path.normpath(dir_path)
-            if normalized_query_path == ".": # ls en el directorio actual (raíz para block_map)
-                normalized_query_path = ""
-            
+            query_canonical_path = self._canonical_dfs_path(dir_path)
             results = []
-            for item_path in self.block_map.keys():
-                # Normalizar item_path para comparación
-                normalized_item_path = os.path.normpath(item_path)
-                
-                # Calcular el directorio padre del item
-                parent_dir_of_item = os.path.dirname(normalized_item_path)
-                if parent_dir_of_item == normalized_query_path:
-                    results.append(os.path.basename(normalized_item_path))
-            
+            for item_canonical_path in self.block_map.keys():
+                parent_dir_of_item = posixpath.dirname(item_canonical_path)
+                if parent_dir_of_item == query_canonical_path:
+                    results.append(posixpath.basename(item_canonical_path))
             return sorted(list(set(results)))
-
 
     def rm(self, file_path):
         with self.lock:
-            normalized_path = os.path.normpath(file_path)
-            if normalized_path not in self.block_map: 
-                raise Exception(f"El archivo o directorio '{normalized_path}' no existe.")
+            canonical_path = self._canonical_dfs_path(file_path)
             
-            # Si es un directorio (representado por una lista vacía de bloques), usar rmdir
-            if isinstance(self.block_map[normalized_path], list) and not self.block_map[normalized_path]:
-                # Podríamos llamar a self.rmdir aquí, pero rmdir tiene sus propias verificaciones de vacío.
-                # Para rm, si es un directorio, simplemente se niega la operación o se redirige.
-                raise Exception(f"'{normalized_path}' es un directorio. Use rmdir para eliminar directorios.")
+            if canonical_path not in self.block_map:
+                raise Exception(f"El archivo o directorio '{canonical_path}' no existe.")
+            
+            # Check if it's a directory (represented by an empty list of blocks)
+            if self.block_map[canonical_path] == []:
+                raise Exception(f"'{canonical_path}' es un directorio. Use rmdir para eliminar directorios.")
 
-            blocks_to_remove = self.block_map.pop(normalized_path, None) # pop devuelve la lista de block_ids o None
-            if blocks_to_remove is None: # Ya fue eliminado o no existía (doble chequeo)
+            blocks_to_remove = self.block_map.pop(canonical_path, None)
+            if blocks_to_remove is None: # Should be caught by 'not in self.block_map' already
                 return
 
-            if not isinstance(blocks_to_remove, list): # No era un archivo con bloques
-                print(f"Advertencia: '{normalized_path}' no parece ser un archivo con bloques en block_map.")
-                return
+            # blocks_to_remove should be a list of block_ids for a file
+            # If it was something else (e.g. somehow not a list, or not an empty list for dir), 
+            # it implies an inconsistent state, but pop would have removed it.
+            # The primary check is that it's not a directory (block_map[canonical_path] == [])
 
-            for block_id in blocks_to_remove:
+            for block_id in blocks_to_remove: # blocks_to_remove is list of block_ids
                 if block_id in self.block_locations:
                     nodes_with_block = self.block_locations.pop(block_id, [])
                     for node_id in nodes_with_block:
                         if node_id in self.data_nodes and 'blocks' in self.data_nodes[node_id]:
                             self.data_nodes[node_id]['blocks'].discard(block_id)
-            print(f"Archivo '{normalized_path}' y sus bloques asociados eliminados de los metadatos.")
+            print(f"Archivo '{canonical_path}' y sus bloques asociados eliminados de los metadatos.")
 
     def get_file_content(self, file_path):
         # Simulación: solo retorna los bloques asignados
         with self.lock:
-            normalized_path = os.path.normpath(file_path)
-            return self.block_map.get(normalized_path, []) 
+            canonical_path = self._canonical_dfs_path(file_path)
+            return self.block_map.get(canonical_path, []) 
 
     def check_and_rereplicate(self):
         with self.lock:
