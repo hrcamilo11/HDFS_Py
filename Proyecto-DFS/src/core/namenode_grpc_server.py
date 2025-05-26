@@ -45,7 +45,7 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
 
     def AddFile(self, request, context):
         self.namenode.add_file(request.file_path, list(request.block_ids))
-        return namenode_pb2.AddFileResponse(success=True)
+        return namenode_pb2.AddFileResponse(success=True, file_path=request.file_path)
 
     def ListFiles(self, request, context):
         items = self.namenode.ls(request.dir_path)

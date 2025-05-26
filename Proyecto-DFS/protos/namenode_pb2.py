@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0enamenode.proto\"\"\n\x0fRegisterRequest\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"#\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"#\n\x10HeartbeatRequest\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"$\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"*\n\x15\x41llocateBlocksRequest\x12\x11\n\tfile_size\x18\x01 \x01(\x03\"+\n\x16\x41llocateBlocksResponse\x12\x11\n\tblock_ids\x18\x01 \x03(\t\"(\n\x14\x42lockLocationRequest\x12\x10\n\x08\x62lock_id\x18\x01 \x01(\t\")\n\x15\x42lockLocationResponse\x12\x10\n\x08node_ids\x18\x01 \x03(\t\"&\n\x11\x46ileBlocksRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"\'\n\x12\x46ileBlocksResponse\x12\x11\n\tblock_ids\x18\x01 \x03(\t\"6\n\x0e\x41\x64\x64\x46ileRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\x12\x11\n\tblock_ids\x18\x02 \x03(\t\"\"\n\x0f\x41\x64\x64\x46ileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"$\n\x10ListFilesRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\"\"\n\x11ListFilesResponse\x12\r\n\x05items\x18\x01 \x03(\t\" \n\x0cMkdirRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\" \n\rMkdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\" \n\x0cRmdirRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\" \n\rRmdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"&\n\x11RemoveFileRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"%\n\x12RemoveFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x32\xa8\x04\n\x0fNameNodeService\x12\x37\n\x10RegisterDataNode\x12\x10.RegisterRequest\x1a\x11.RegisterResponse\x12\x32\n\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\x12\x41\n\x0e\x41llocateBlocks\x12\x16.AllocateBlocksRequest\x1a\x17.AllocateBlocksResponse\x12\x42\n\x11GetBlockLocations\x12\x15.BlockLocationRequest\x1a\x16.BlockLocationResponse\x12\x38\n\rGetFileBlocks\x12\x12.FileBlocksRequest\x1a\x13.FileBlocksResponse\x12,\n\x07\x41\x64\x64\x46ile\x12\x0f.AddFileRequest\x1a\x10.AddFileResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12&\n\x05Mkdir\x12\r.MkdirRequest\x1a\x0e.MkdirResponse\x12&\n\x05Rmdir\x12\r.RmdirRequest\x1a\x0e.RmdirResponse\x12\x35\n\nRemoveFile\x12\x12.RemoveFileRequest\x1a\x13.RemoveFileResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0enamenode.proto\"\"\n\x0fRegisterRequest\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"#\n\x10RegisterResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"#\n\x10HeartbeatRequest\x12\x0f\n\x07node_id\x18\x01 \x01(\t\"$\n\x11HeartbeatResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"*\n\x15\x41llocateBlocksRequest\x12\x11\n\tfile_size\x18\x01 \x01(\x03\"+\n\x16\x41llocateBlocksResponse\x12\x11\n\tblock_ids\x18\x01 \x03(\t\"(\n\x14\x42lockLocationRequest\x12\x10\n\x08\x62lock_id\x18\x01 \x01(\t\")\n\x15\x42lockLocationResponse\x12\x10\n\x08node_ids\x18\x01 \x03(\t\"&\n\x11\x46ileBlocksRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"\'\n\x12\x46ileBlocksResponse\x12\x11\n\tblock_ids\x18\x01 \x03(\t\"6\n\x0e\x41\x64\x64\x46ileRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\x12\x11\n\tblock_ids\x18\x02 \x03(\t\"5\n\x0f\x41\x64\x64\x46ileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x11\n\tfile_path\x18\x02 \x01(\t\"$\n\x10ListFilesRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\"\"\n\x11ListFilesResponse\x12\r\n\x05items\x18\x01 \x03(\t\" \n\x0cMkdirRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\" \n\rMkdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\" \n\x0cRmdirRequest\x12\x10\n\x08\x64ir_path\x18\x01 \x01(\t\" \n\rRmdirResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\"&\n\x11RemoveFileRequest\x12\x11\n\tfile_path\x18\x01 \x01(\t\"%\n\x12RemoveFileResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x32\xa8\x04\n\x0fNameNodeService\x12\x37\n\x10RegisterDataNode\x12\x10.RegisterRequest\x1a\x11.RegisterResponse\x12\x32\n\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\x12\x41\n\x0e\x41llocateBlocks\x12\x16.AllocateBlocksRequest\x1a\x17.AllocateBlocksResponse\x12\x42\n\x11GetBlockLocations\x12\x15.BlockLocationRequest\x1a\x16.BlockLocationResponse\x12\x38\n\rGetFileBlocks\x12\x12.FileBlocksRequest\x1a\x13.FileBlocksResponse\x12,\n\x07\x41\x64\x64\x46ile\x12\x0f.AddFileRequest\x1a\x10.AddFileResponse\x12\x32\n\tListFiles\x12\x11.ListFilesRequest\x1a\x12.ListFilesResponse\x12&\n\x05Mkdir\x12\r.MkdirRequest\x1a\x0e.MkdirResponse\x12&\n\x05Rmdir\x12\r.RmdirRequest\x1a\x0e.RmdirResponse\x12\x35\n\nRemoveFile\x12\x12.RemoveFileRequest\x1a\x13.RemoveFileResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -54,23 +54,23 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ADDFILEREQUEST']._serialized_start=421
   _globals['_ADDFILEREQUEST']._serialized_end=475
   _globals['_ADDFILERESPONSE']._serialized_start=477
-  _globals['_ADDFILERESPONSE']._serialized_end=511
-  _globals['_LISTFILESREQUEST']._serialized_start=513
-  _globals['_LISTFILESREQUEST']._serialized_end=549
-  _globals['_LISTFILESRESPONSE']._serialized_start=551
-  _globals['_LISTFILESRESPONSE']._serialized_end=585
-  _globals['_MKDIRREQUEST']._serialized_start=587
-  _globals['_MKDIRREQUEST']._serialized_end=619
-  _globals['_MKDIRRESPONSE']._serialized_start=621
-  _globals['_MKDIRRESPONSE']._serialized_end=653
-  _globals['_RMDIRREQUEST']._serialized_start=655
-  _globals['_RMDIRREQUEST']._serialized_end=687
-  _globals['_RMDIRRESPONSE']._serialized_start=689
-  _globals['_RMDIRRESPONSE']._serialized_end=721
-  _globals['_REMOVEFILEREQUEST']._serialized_start=723
-  _globals['_REMOVEFILEREQUEST']._serialized_end=761
-  _globals['_REMOVEFILERESPONSE']._serialized_start=763
-  _globals['_REMOVEFILERESPONSE']._serialized_end=800
-  _globals['_NAMENODESERVICE']._serialized_start=803
-  _globals['_NAMENODESERVICE']._serialized_end=1355
+  _globals['_ADDFILERESPONSE']._serialized_end=530
+  _globals['_LISTFILESREQUEST']._serialized_start=532
+  _globals['_LISTFILESREQUEST']._serialized_end=568
+  _globals['_LISTFILESRESPONSE']._serialized_start=570
+  _globals['_LISTFILESRESPONSE']._serialized_end=604
+  _globals['_MKDIRREQUEST']._serialized_start=606
+  _globals['_MKDIRREQUEST']._serialized_end=638
+  _globals['_MKDIRRESPONSE']._serialized_start=640
+  _globals['_MKDIRRESPONSE']._serialized_end=672
+  _globals['_RMDIRREQUEST']._serialized_start=674
+  _globals['_RMDIRREQUEST']._serialized_end=706
+  _globals['_RMDIRRESPONSE']._serialized_start=708
+  _globals['_RMDIRRESPONSE']._serialized_end=740
+  _globals['_REMOVEFILEREQUEST']._serialized_start=742
+  _globals['_REMOVEFILEREQUEST']._serialized_end=780
+  _globals['_REMOVEFILERESPONSE']._serialized_start=782
+  _globals['_REMOVEFILERESPONSE']._serialized_end=819
+  _globals['_NAMENODESERVICE']._serialized_start=822
+  _globals['_NAMENODESERVICE']._serialized_end=1374
 # @@protoc_insertion_point(module_scope)

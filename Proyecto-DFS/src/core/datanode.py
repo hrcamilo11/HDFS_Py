@@ -81,13 +81,19 @@ class DataNodeServicer(dfs_pb2_grpc.DataNodeServiceServicer):
         return self.StoreBlock(request, context)
 
     def GetBlock(self, request, context):
-        import src.core.dfs_pb2 as dfs_pb2
         block_path = os.path.join(self.storage_dir, request.block_id)
         if not os.path.exists(block_path):
-            return dfs_pb2.BlockRequest(content=b"", block_id=request.block_id, replica_nodes=[])
-        with open(block_path, "rb") as f:
-            content = f.read()
-        return dfs_pb2.BlockRequest(content=content, block_id=request.block_id, replica_nodes=[])
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details(f"Block {request.block_id} not found.")
+            return dfs_pb2.BlockDataResponse(content=b"", success=False, message=f"Block {request.block_id} not found.")
+        try:
+            with open(block_path, "rb") as f:
+                content = f.read()
+            return dfs_pb2.BlockDataResponse(content=content, success=True, message=f"Block {request.block_id} retrieved successfully.")
+        except Exception as e:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Error reading block {request.block_id}: {str(e)}")
+            return dfs_pb2.BlockDataResponse(content=b"", success=False, message=f"Error reading block {request.block_id}: {str(e)}")
 
 class DataNode:
     def __init__(self, node_id, namenode_host="localhost:50052", grpc_port=50051, storage_dir="/tmp/default_datanode_storage"):

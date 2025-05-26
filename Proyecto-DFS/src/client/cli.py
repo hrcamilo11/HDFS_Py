@@ -65,8 +65,12 @@ def put(file_path: Path):
                 print(f"Error al contactar DataNode {chosen_datanode_id} ({datanode_address}): {e}. Se omite el envío del bloque {block_id}.")
                 continue
     # Registrar archivo en NameNode
-    stub.AddFile(namenode_pb2.AddFileRequest(file_path=str(file_path), block_ids=blocks))
-    print(f"Archivo {file_path} registrado en NameNode")
+    dfs_file_path = os.path.basename(file_path)
+    add_file_response = stub.AddFile(namenode_pb2.AddFileRequest(file_path=dfs_file_path, block_ids=blocks))
+    if add_file_response.success:
+        print(f"Archivo {file_path} registrado en NameNode en la ruta DFS: {add_file_response.file_path}")
+    else:
+        print(f"Error al registrar el archivo {dfs_file_path} en NameNode.")
 
 @app.command()
 def ls(dir_path: str = "/"):
@@ -94,11 +98,15 @@ def get(file_path: str, output_path: Path = None):
                     datanode_port = 50052 + datanode_index
                     datanode_address = f"localhost:{datanode_port}"
                     stub_dn = get_datanode_stub(datanode_address)
-                    block_data_resp = stub_dn.GetBlock(dfs_pb2.BlockRequest(block_id=block_id, content=b"", replica_nodes=[]))
-                    data += block_data_resp.content
-                    print(f"Descargado bloque {block_id} desde {datanode_id_to_try} ({datanode_address})")
-                    block_downloaded = True
-                    break # Successfully downloaded from this datanode
+                    # Pass only block_id in BlockRequest for GetBlock, content and replica_nodes are not needed.
+                    block_data_resp = stub_dn.GetBlock(dfs_pb2.BlockRequest(block_id=block_id))
+                    if block_data_resp.success:
+                        data += block_data_resp.content
+                        print(f"Descargado bloque {block_id} desde {datanode_id_to_try} ({datanode_address})")
+                        block_downloaded = True
+                        break # Successfully downloaded from this datanode
+                    else:
+                        print(f"Error al obtener bloque {block_id} desde {datanode_id_to_try}: {block_data_resp.message}. Intentando con el siguiente.")
                 except ValueError:
                     print(f"Error: No se pudo determinar la dirección del DataNode desde el ID '{datanode_id_to_try}'. Intentando con el siguiente.")
                 except grpc.RpcError as e:

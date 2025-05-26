@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tdfs.proto\"H\n\x0c\x42lockRequest\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\x0c\x12\x10\n\x08\x62lock_id\x18\x02 \x01(\t\x12\x15\n\rreplica_nodes\x18\x03 \x03(\t\"1\n\rStoreResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2o\n\x0f\x44\x61taNodeService\x12+\n\nStoreBlock\x12\r.BlockRequest\x1a\x0e.StoreResponse\x12/\n\x0eReplicateBlock\x12\r.BlockRequest\x1a\x0e.StoreResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tdfs.proto\"H\n\x0c\x42lockRequest\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\x0c\x12\x10\n\x08\x62lock_id\x18\x02 \x01(\t\x12\x15\n\rreplica_nodes\x18\x03 \x03(\t\"1\n\rStoreResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"F\n\x11\x42lockDataResponse\x12\x0f\n\x07\x63ontent\x18\x01 \x01(\x0c\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\x9e\x01\n\x0f\x44\x61taNodeService\x12+\n\nStoreBlock\x12\r.BlockRequest\x1a\x0e.StoreResponse\x12/\n\x0eReplicateBlock\x12\r.BlockRequest\x1a\x0e.StoreResponse\x12-\n\x08GetBlock\x12\r.BlockRequest\x1a\x12.BlockDataResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_BLOCKREQUEST']._serialized_end=85
   _globals['_STORERESPONSE']._serialized_start=87
   _globals['_STORERESPONSE']._serialized_end=136
-  _globals['_DATANODESERVICE']._serialized_start=138
-  _globals['_DATANODESERVICE']._serialized_end=249
+  _globals['_BLOCKDATARESPONSE']._serialized_start=138
+  _globals['_BLOCKDATARESPONSE']._serialized_end=208
+  _globals['_DATANODESERVICE']._serialized_start=211
+  _globals['_DATANODESERVICE']._serialized_end=369
 # @@protoc_insertion_point(module_scope)

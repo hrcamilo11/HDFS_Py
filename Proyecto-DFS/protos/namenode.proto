@@ -54,6 +54,7 @@ message AddFileRequest {
 }
 message AddFileResponse {
     bool success = 1;
+    string file_path = 2; // Ruta del archivo en el DFS
 }
 
 message ListFilesRequest {
@@ -82,4 +83,4 @@ message RemoveFileRequest {
 }
 message RemoveFileResponse {
     bool success = 1;
-} 
+}

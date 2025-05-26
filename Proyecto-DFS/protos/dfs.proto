@@ -3,6 +3,7 @@ syntax = "proto3";
 service DataNodeService {
     rpc StoreBlock (BlockRequest) returns (StoreResponse);
     rpc ReplicateBlock (BlockRequest) returns (StoreResponse);
+    rpc GetBlock (BlockRequest) returns (BlockDataResponse); // Added GetBlock RPC
 }
 
 message BlockRequest {
@@ -14,4 +15,10 @@ message BlockRequest {
 message StoreResponse {
     bool success = 1;
     string message = 2;
-} 
+}
+
+message BlockDataResponse {
+    bytes content = 1;
+    bool success = 2;
+    string message = 3;
+}
