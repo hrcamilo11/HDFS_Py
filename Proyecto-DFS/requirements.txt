@@ -1,3 +1,6 @@
 grpcio
 grpcio-tools
 protobuf
+fastapi
+uvicorn
+python-jose
