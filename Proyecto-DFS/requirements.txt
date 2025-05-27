@@ -4,3 +4,4 @@ protobuf
 fastapi
 uvicorn
 python-jose
+python-multipart
