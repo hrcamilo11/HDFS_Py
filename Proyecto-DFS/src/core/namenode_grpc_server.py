@@ -10,9 +10,9 @@ import grpc
 from concurrent import futures
 import time
 from src.core.namenode import NameNode
-import protos.namenode_pb2_grpc as namenode_pb2_grpc
-import protos.namenode_pb2 as namenode_pb2
-import protos.dfs_pb2 as dfs_pb2
+from protos import namenode_pb2_grpc
+from protos import namenode_pb2
+from protos import dfs_pb2
 import threading
 
 class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
@@ -34,7 +34,7 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
         return namenode_pb2.HeartbeatResponse(success=True)
 
     def AllocateBlocks(self, request, context):
-        block_ids = self.namenode.allocate_blocks(request.file_size)
+        block_ids = self.namenode.allocate_blocks(request.username, request.file_size)
         return namenode_pb2.AllocateBlocksResponse(block_ids=block_ids)
 
     def GetBlockLocations(self, request, context):
@@ -42,35 +42,35 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
         return namenode_pb2.BlockLocationResponse(node_ids=node_ids)
 
     def GetFileBlocks(self, request, context):
-        block_ids = self.namenode.get_file_blocks(request.file_path)
+        block_ids = self.namenode.get_file_blocks(request.username, request.file_path)
         return namenode_pb2.FileBlocksResponse(block_ids=block_ids)
 
     def AddFile(self, request, context):
-        self.namenode.add_file(request.file_path, list(request.block_ids))
+        self.namenode.add_file(request.username, request.file_path, list(request.block_ids))
         return namenode_pb2.AddFileResponse(success=True, file_path=request.file_path)
 
     def ListFiles(self, request, context):
-        items = self.namenode.ls(request.dir_path)
+        items = self.namenode.ls(request.username, request.dir_path)
         return namenode_pb2.ListFilesResponse(items=items)
 
     def Mkdir(self, request, context):
-        self.namenode.mkdir(request.dir_path)
+        self.namenode.mkdir(request.username, request.dir_path)
         return namenode_pb2.MkdirResponse(success=True)
 
     def Rmdir(self, request, context):
-        self.namenode.rmdir(request.dir_path)
+        self.namenode.rmdir(request.username, request.dir_path)
         return namenode_pb2.RmdirResponse(success=True)
 
     def RemoveFile(self, request, context):
-        self.namenode.rm(request.file_path)
+        self.namenode.rm(request.username, request.file_path)
         return namenode_pb2.RemoveFileResponse(success=True)
 
     def GetFileContent(self, request, context):
-        content = self.namenode.get_file_content(request.file_path)
+        content = self.namenode.get_file_content(request.username, request.file_path)
         return namenode_pb2.FileContentResponse(content=content)
 
     def Move(self, request, context):
-        success, message = self.namenode.mv(request.source_path, request.destination_path)
+        success, message = self.namenode.mv(request.username, request.source_path, request.destination_path)
         return namenode_pb2.MoveResponse(success=success, message=message)
 
     def Login(self, request, context):
@@ -82,7 +82,7 @@ class NameNodeService(namenode_pb2_grpc.NameNodeServiceServicer):
         return namenode_pb2.LogoutResponse(success=success, message=message)
 
 def serve():
-    port = '50052'
+    port = '50050'
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     namenode_pb2_grpc.add_NameNodeServiceServicer_to_server(NameNodeService(), server)
     server.add_insecure_port('[::]:' + port)

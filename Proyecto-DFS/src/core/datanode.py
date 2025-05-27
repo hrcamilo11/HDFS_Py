@@ -11,8 +11,8 @@ import threading
 import time
 import os
 from concurrent import futures
-import protos.dfs_pb2_grpc as dfs_pb2_grpc
-import protos.dfs_pb2 as dfs_pb2
+from protos import dfs_pb2_grpc
+from protos import dfs_pb2
 # Ensure PROJECT_ROOT is in sys.path for 'from protos import ...' to work
 # This is already handled at the top of the file.
 
@@ -58,7 +58,7 @@ class DataNodeServicer(dfs_pb2_grpc.DataNodeServiceServicer):
                 try:
                     # Derive address from replica_node_id (e.g., "datanode2" -> "localhost:50054")
                     datanode_index = int(replica_node_id.replace("datanode", ""))
-                    datanode_port = 50052 + datanode_index # Base port 50053 for datanode1
+                    datanode_port = 50050 + datanode_index # Base port 50051 for datanode1
                     replica_address = f"localhost:{datanode_port}"
                     
                     channel = grpc.insecure_channel(replica_address)
@@ -95,7 +95,7 @@ class DataNodeServicer(dfs_pb2_grpc.DataNodeServiceServicer):
             return dfs_pb2.BlockDataResponse(content=b"", success=False, message=f"Error reading block {request.block_id}: {str(e)}")
 
 class DataNode:
-    def __init__(self, node_id, namenode_host="localhost:50052", grpc_port=50051, storage_dir="/tmp/default_datanode_storage"):
+    def __init__(self, node_id, namenode_host="localhost:50050", grpc_port=50051, storage_dir="/tmp/default_datanode_storage"):
         self.node_id = node_id
         self.namenode_host = namenode_host
         self.grpc_port = grpc_port

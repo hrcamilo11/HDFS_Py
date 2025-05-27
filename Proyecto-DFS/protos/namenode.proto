@@ -31,7 +31,8 @@ message HeartbeatResponse {
 }
 
 message AllocateBlocksRequest {
-    int64 file_size = 1;
+    string username = 1;
+    int64 file_size = 2;
 }
 message AllocateBlocksResponse {
     repeated string block_ids = 1;
@@ -45,15 +46,17 @@ message BlockLocationResponse {
 }
 
 message FileBlocksRequest {
-    string file_path = 1;
+    string username = 1;
+    string file_path = 2;
 }
 message FileBlocksResponse {
     repeated string block_ids = 1;
 }
 
 message AddFileRequest {
-    string file_path = 1;
-    repeated string block_ids = 2;
+    string username = 1;
+    string file_path = 2;
+    repeated string block_ids = 3;
 }
 message AddFileResponse {
     bool success = 1;
@@ -61,28 +64,32 @@ message AddFileResponse {
 }
 
 message ListFilesRequest {
-    string dir_path = 1;
+    string username = 1;
+    string dir_path = 2;
 }
 message ListFilesResponse {
     repeated string items = 1;
 }
 
 message MkdirRequest {
-    string dir_path = 1;
+    string username = 1;
+    string dir_path = 2;
 }
 message MkdirResponse {
     bool success = 1;
 }
 
 message RmdirRequest {
-    string dir_path = 1;
+    string username = 1;
+    string dir_path = 2;
 }
 message RmdirResponse {
     bool success = 1;
 }
 
 message RemoveFileRequest {
-    string file_path = 1;
+    string username = 1;
+    string file_path = 2;
 }
 message RemoveFileResponse {
     bool success = 1;
@@ -90,8 +97,9 @@ message RemoveFileResponse {
 
 // --- Mensajes para Move (mv) ---
 message MoveRequest {
-    string source_path = 1;
-    string destination_path = 2;
+    string username = 1;
+    string source_path = 2;
+    string destination_path = 3;
 }
 
 message MoveResponse {

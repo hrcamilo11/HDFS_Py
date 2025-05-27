@@ -17,9 +17,15 @@ def start_server(script_path, name, args=None):
     print(f"Starting {name} server...")
     # Use sys.executable to ensure the correct Python interpreter is used
     command = [sys.executable, script_path] + args
+    env = os.environ.copy()
+    if 'PYTHONPATH' in env:
+        env['PYTHONPATH'] = f"{project_root};{env['PYTHONPATH']}"
+    else:
+        env['PYTHONPATH'] = project_root
     process = subprocess.Popen(command, 
                                stdout=sys.stdout,
-                               stderr=sys.stderr)
+                               stderr=sys.stderr,
+                               env=env)
     print(f"{name} server started with PID: {process.pid}")
     return process
 
@@ -32,7 +38,7 @@ if __name__ == "__main__":
     try:
         # Start NameNode
         namenode_process = start_server(NAMENODE_SERVER_PATH, "NameNode")
-        time.sleep(3) # Give NameNode a moment to start (increased to 3 seconds as requested)
+        time.sleep(5) # Give NameNode a moment to start (increased to 5 seconds)
 
         # Ask user for number of DataNodes
         num_datanodes = 0
@@ -53,7 +59,7 @@ if __name__ == "__main__":
         # Keep the main script running to keep subprocesses alive
         # Wait for both processes to terminate
         while namenode_process.poll() is None or datanodes_process.poll() is None:
-            time.sleep(1) # Wait a bit before checking again
+            time.sleep(2) # Wait a bit before checking again
 
         if namenode_process.poll() is not None:
             print(f"NameNode process exited with code {namenode_process.returncode}")

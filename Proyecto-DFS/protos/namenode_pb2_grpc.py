@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from protos import namenode_pb2 as protos_dot_namenode__pb2
+from protos import namenode_pb2 as namenode__pb2
 
 GRPC_GENERATED_VERSION = '1.71.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in protos/namenode_pb2_grpc.py depends on'
+        + f' but the generated code in namenode_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,68 +36,68 @@ class NameNodeServiceStub(object):
         """
         self.RegisterDataNode = channel.unary_unary(
                 '/NameNodeService/RegisterDataNode',
-                request_serializer=protos_dot_namenode__pb2.RegisterRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.RegisterResponse.FromString,
+                request_serializer=namenode__pb2.RegisterRequest.SerializeToString,
+                response_deserializer=namenode__pb2.RegisterResponse.FromString,
                 _registered_method=True)
         self.Heartbeat = channel.unary_unary(
                 '/NameNodeService/Heartbeat',
-                request_serializer=protos_dot_namenode__pb2.HeartbeatRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.HeartbeatResponse.FromString,
+                request_serializer=namenode__pb2.HeartbeatRequest.SerializeToString,
+                response_deserializer=namenode__pb2.HeartbeatResponse.FromString,
                 _registered_method=True)
         self.AllocateBlocks = channel.unary_unary(
                 '/NameNodeService/AllocateBlocks',
-                request_serializer=protos_dot_namenode__pb2.AllocateBlocksRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.AllocateBlocksResponse.FromString,
+                request_serializer=namenode__pb2.AllocateBlocksRequest.SerializeToString,
+                response_deserializer=namenode__pb2.AllocateBlocksResponse.FromString,
                 _registered_method=True)
         self.GetBlockLocations = channel.unary_unary(
                 '/NameNodeService/GetBlockLocations',
-                request_serializer=protos_dot_namenode__pb2.BlockLocationRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.BlockLocationResponse.FromString,
+                request_serializer=namenode__pb2.BlockLocationRequest.SerializeToString,
+                response_deserializer=namenode__pb2.BlockLocationResponse.FromString,
                 _registered_method=True)
         self.GetFileBlocks = channel.unary_unary(
                 '/NameNodeService/GetFileBlocks',
-                request_serializer=protos_dot_namenode__pb2.FileBlocksRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.FileBlocksResponse.FromString,
+                request_serializer=namenode__pb2.FileBlocksRequest.SerializeToString,
+                response_deserializer=namenode__pb2.FileBlocksResponse.FromString,
                 _registered_method=True)
         self.AddFile = channel.unary_unary(
                 '/NameNodeService/AddFile',
-                request_serializer=protos_dot_namenode__pb2.AddFileRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.AddFileResponse.FromString,
+                request_serializer=namenode__pb2.AddFileRequest.SerializeToString,
+                response_deserializer=namenode__pb2.AddFileResponse.FromString,
                 _registered_method=True)
         self.ListFiles = channel.unary_unary(
                 '/NameNodeService/ListFiles',
-                request_serializer=protos_dot_namenode__pb2.ListFilesRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.ListFilesResponse.FromString,
+                request_serializer=namenode__pb2.ListFilesRequest.SerializeToString,
+                response_deserializer=namenode__pb2.ListFilesResponse.FromString,
                 _registered_method=True)
         self.Mkdir = channel.unary_unary(
                 '/NameNodeService/Mkdir',
-                request_serializer=protos_dot_namenode__pb2.MkdirRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.MkdirResponse.FromString,
+                request_serializer=namenode__pb2.MkdirRequest.SerializeToString,
+                response_deserializer=namenode__pb2.MkdirResponse.FromString,
                 _registered_method=True)
         self.Rmdir = channel.unary_unary(
                 '/NameNodeService/Rmdir',
-                request_serializer=protos_dot_namenode__pb2.RmdirRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.RmdirResponse.FromString,
+                request_serializer=namenode__pb2.RmdirRequest.SerializeToString,
+                response_deserializer=namenode__pb2.RmdirResponse.FromString,
                 _registered_method=True)
         self.RemoveFile = channel.unary_unary(
                 '/NameNodeService/RemoveFile',
-                request_serializer=protos_dot_namenode__pb2.RemoveFileRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.RemoveFileResponse.FromString,
+                request_serializer=namenode__pb2.RemoveFileRequest.SerializeToString,
+                response_deserializer=namenode__pb2.RemoveFileResponse.FromString,
                 _registered_method=True)
         self.Move = channel.unary_unary(
                 '/NameNodeService/Move',
-                request_serializer=protos_dot_namenode__pb2.MoveRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.MoveResponse.FromString,
+                request_serializer=namenode__pb2.MoveRequest.SerializeToString,
+                response_deserializer=namenode__pb2.MoveResponse.FromString,
                 _registered_method=True)
         self.Login = channel.unary_unary(
                 '/NameNodeService/Login',
-                request_serializer=protos_dot_namenode__pb2.LoginRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.LoginResponse.FromString,
+                request_serializer=namenode__pb2.LoginRequest.SerializeToString,
+                response_deserializer=namenode__pb2.LoginResponse.FromString,
                 _registered_method=True)
         self.Logout = channel.unary_unary(
                 '/NameNodeService/Logout',
-                request_serializer=protos_dot_namenode__pb2.LogoutRequest.SerializeToString,
-                response_deserializer=protos_dot_namenode__pb2.LogoutResponse.FromString,
+                request_serializer=namenode__pb2.LogoutRequest.SerializeToString,
+                response_deserializer=namenode__pb2.LogoutResponse.FromString,
                 _registered_method=True)
 
 
@@ -188,68 +188,68 @@ def add_NameNodeServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'RegisterDataNode': grpc.unary_unary_rpc_method_handler(
                     servicer.RegisterDataNode,
-                    request_deserializer=protos_dot_namenode__pb2.RegisterRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.RegisterResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.RegisterRequest.FromString,
+                    response_serializer=namenode__pb2.RegisterResponse.SerializeToString,
             ),
             'Heartbeat': grpc.unary_unary_rpc_method_handler(
                     servicer.Heartbeat,
-                    request_deserializer=protos_dot_namenode__pb2.HeartbeatRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.HeartbeatResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.HeartbeatRequest.FromString,
+                    response_serializer=namenode__pb2.HeartbeatResponse.SerializeToString,
             ),
             'AllocateBlocks': grpc.unary_unary_rpc_method_handler(
                     servicer.AllocateBlocks,
-                    request_deserializer=protos_dot_namenode__pb2.AllocateBlocksRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.AllocateBlocksResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.AllocateBlocksRequest.FromString,
+                    response_serializer=namenode__pb2.AllocateBlocksResponse.SerializeToString,
             ),
             'GetBlockLocations': grpc.unary_unary_rpc_method_handler(
                     servicer.GetBlockLocations,
-                    request_deserializer=protos_dot_namenode__pb2.BlockLocationRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.BlockLocationResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.BlockLocationRequest.FromString,
+                    response_serializer=namenode__pb2.BlockLocationResponse.SerializeToString,
             ),
             'GetFileBlocks': grpc.unary_unary_rpc_method_handler(
                     servicer.GetFileBlocks,
-                    request_deserializer=protos_dot_namenode__pb2.FileBlocksRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.FileBlocksResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.FileBlocksRequest.FromString,
+                    response_serializer=namenode__pb2.FileBlocksResponse.SerializeToString,
             ),
             'AddFile': grpc.unary_unary_rpc_method_handler(
                     servicer.AddFile,
-                    request_deserializer=protos_dot_namenode__pb2.AddFileRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.AddFileResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.AddFileRequest.FromString,
+                    response_serializer=namenode__pb2.AddFileResponse.SerializeToString,
             ),
             'ListFiles': grpc.unary_unary_rpc_method_handler(
                     servicer.ListFiles,
-                    request_deserializer=protos_dot_namenode__pb2.ListFilesRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.ListFilesResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.ListFilesRequest.FromString,
+                    response_serializer=namenode__pb2.ListFilesResponse.SerializeToString,
             ),
             'Mkdir': grpc.unary_unary_rpc_method_handler(
                     servicer.Mkdir,
-                    request_deserializer=protos_dot_namenode__pb2.MkdirRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.MkdirResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.MkdirRequest.FromString,
+                    response_serializer=namenode__pb2.MkdirResponse.SerializeToString,
             ),
             'Rmdir': grpc.unary_unary_rpc_method_handler(
                     servicer.Rmdir,
-                    request_deserializer=protos_dot_namenode__pb2.RmdirRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.RmdirResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.RmdirRequest.FromString,
+                    response_serializer=namenode__pb2.RmdirResponse.SerializeToString,
             ),
             'RemoveFile': grpc.unary_unary_rpc_method_handler(
                     servicer.RemoveFile,
-                    request_deserializer=protos_dot_namenode__pb2.RemoveFileRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.RemoveFileResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.RemoveFileRequest.FromString,
+                    response_serializer=namenode__pb2.RemoveFileResponse.SerializeToString,
             ),
             'Move': grpc.unary_unary_rpc_method_handler(
                     servicer.Move,
-                    request_deserializer=protos_dot_namenode__pb2.MoveRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.MoveResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.MoveRequest.FromString,
+                    response_serializer=namenode__pb2.MoveResponse.SerializeToString,
             ),
             'Login': grpc.unary_unary_rpc_method_handler(
                     servicer.Login,
-                    request_deserializer=protos_dot_namenode__pb2.LoginRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.LoginResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.LoginRequest.FromString,
+                    response_serializer=namenode__pb2.LoginResponse.SerializeToString,
             ),
             'Logout': grpc.unary_unary_rpc_method_handler(
                     servicer.Logout,
-                    request_deserializer=protos_dot_namenode__pb2.LogoutRequest.FromString,
-                    response_serializer=protos_dot_namenode__pb2.LogoutResponse.SerializeToString,
+                    request_deserializer=namenode__pb2.LogoutRequest.FromString,
+                    response_serializer=namenode__pb2.LogoutResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -277,8 +277,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/RegisterDataNode',
-            protos_dot_namenode__pb2.RegisterRequest.SerializeToString,
-            protos_dot_namenode__pb2.RegisterResponse.FromString,
+            namenode__pb2.RegisterRequest.SerializeToString,
+            namenode__pb2.RegisterResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -304,8 +304,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Heartbeat',
-            protos_dot_namenode__pb2.HeartbeatRequest.SerializeToString,
-            protos_dot_namenode__pb2.HeartbeatResponse.FromString,
+            namenode__pb2.HeartbeatRequest.SerializeToString,
+            namenode__pb2.HeartbeatResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -331,8 +331,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/AllocateBlocks',
-            protos_dot_namenode__pb2.AllocateBlocksRequest.SerializeToString,
-            protos_dot_namenode__pb2.AllocateBlocksResponse.FromString,
+            namenode__pb2.AllocateBlocksRequest.SerializeToString,
+            namenode__pb2.AllocateBlocksResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -358,8 +358,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/GetBlockLocations',
-            protos_dot_namenode__pb2.BlockLocationRequest.SerializeToString,
-            protos_dot_namenode__pb2.BlockLocationResponse.FromString,
+            namenode__pb2.BlockLocationRequest.SerializeToString,
+            namenode__pb2.BlockLocationResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -385,8 +385,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/GetFileBlocks',
-            protos_dot_namenode__pb2.FileBlocksRequest.SerializeToString,
-            protos_dot_namenode__pb2.FileBlocksResponse.FromString,
+            namenode__pb2.FileBlocksRequest.SerializeToString,
+            namenode__pb2.FileBlocksResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -412,8 +412,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/AddFile',
-            protos_dot_namenode__pb2.AddFileRequest.SerializeToString,
-            protos_dot_namenode__pb2.AddFileResponse.FromString,
+            namenode__pb2.AddFileRequest.SerializeToString,
+            namenode__pb2.AddFileResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -439,8 +439,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/ListFiles',
-            protos_dot_namenode__pb2.ListFilesRequest.SerializeToString,
-            protos_dot_namenode__pb2.ListFilesResponse.FromString,
+            namenode__pb2.ListFilesRequest.SerializeToString,
+            namenode__pb2.ListFilesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -466,8 +466,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Mkdir',
-            protos_dot_namenode__pb2.MkdirRequest.SerializeToString,
-            protos_dot_namenode__pb2.MkdirResponse.FromString,
+            namenode__pb2.MkdirRequest.SerializeToString,
+            namenode__pb2.MkdirResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -493,8 +493,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Rmdir',
-            protos_dot_namenode__pb2.RmdirRequest.SerializeToString,
-            protos_dot_namenode__pb2.RmdirResponse.FromString,
+            namenode__pb2.RmdirRequest.SerializeToString,
+            namenode__pb2.RmdirResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -520,8 +520,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/RemoveFile',
-            protos_dot_namenode__pb2.RemoveFileRequest.SerializeToString,
-            protos_dot_namenode__pb2.RemoveFileResponse.FromString,
+            namenode__pb2.RemoveFileRequest.SerializeToString,
+            namenode__pb2.RemoveFileResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -547,8 +547,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Move',
-            protos_dot_namenode__pb2.MoveRequest.SerializeToString,
-            protos_dot_namenode__pb2.MoveResponse.FromString,
+            namenode__pb2.MoveRequest.SerializeToString,
+            namenode__pb2.MoveResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -574,8 +574,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Login',
-            protos_dot_namenode__pb2.LoginRequest.SerializeToString,
-            protos_dot_namenode__pb2.LoginResponse.FromString,
+            namenode__pb2.LoginRequest.SerializeToString,
+            namenode__pb2.LoginResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -601,8 +601,8 @@ class NameNodeService(object):
             request,
             target,
             '/NameNodeService/Logout',
-            protos_dot_namenode__pb2.LogoutRequest.SerializeToString,
-            protos_dot_namenode__pb2.LogoutResponse.FromString,
+            namenode__pb2.LogoutRequest.SerializeToString,
+            namenode__pb2.LogoutResponse.FromString,
             options,
             channel_credentials,
             insecure,

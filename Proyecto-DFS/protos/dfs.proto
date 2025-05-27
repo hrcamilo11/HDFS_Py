@@ -3,13 +3,19 @@ syntax = "proto3";
 service DataNodeService {
     rpc StoreBlock (BlockRequest) returns (StoreResponse);
     rpc ReplicateBlock (BlockRequest) returns (StoreResponse);
-    rpc GetBlock (BlockRequest) returns (BlockDataResponse); // Added GetBlock RPC
+    rpc GetBlock (GetBlockRequest) returns (BlockDataResponse); // Use specific request for GetBlock
 }
 
+// Message for storing or replicating a block
 message BlockRequest {
     bytes content = 1;
     string block_id = 2;
-    repeated string replica_nodes = 3;
+    repeated string replica_nodes = 3; // For StoreBlock, these are targets for replication
+}
+
+// Message for requesting a block by its ID
+message GetBlockRequest {
+    string block_id = 1;
 }
 
 message StoreResponse {

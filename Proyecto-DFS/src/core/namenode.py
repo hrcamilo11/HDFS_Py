@@ -3,21 +3,21 @@ import threading
 import random
 import os
 import posixpath
+import logging
 
 class NameNode:
-    def _canonical_dfs_path(self, path_str: str) -> str:
+    def _canonical_dfs_path(self, username: str, path_str: str) -> str:
         """
-        Normalizes a DFS-style path to a canonical form:
+        Normalizes a DFS-style path to a canonical form for a specific user:
         - Uses forward slashes '/'.
         - Is absolute (starts with '/').
         - Resolves '.' and '..' components (via posixpath.normpath).
         - No trailing slash unless it's the root '/'.
         - Multiple slashes are collapsed.
+        - Prepends '/user/<username>' to the path.
         """
-        if not path_str:
-            # This case should ideally be handled by client sending valid paths
-            # or be an error, but for safety, default to root.
-            return "/"
+        if not username:
+            raise ValueError("Username cannot be empty.")
 
         # Ensure path starts with / if it's not already, as all paths in DFS are absolute from root.
         temp_path = path_str
@@ -27,19 +27,33 @@ class NameNode:
         # Use posixpath.normpath for normalization. It always uses '/' as separator.
         canonical = posixpath.normpath(temp_path)
         
-        # posixpath.normpath("/") is "/"
-        # posixpath.normpath("/foo/./bar//baz/../qux") is "/foo/bar/qux"
-        # posixpath.normpath("/../foo") is "/foo" (handles '..' at root correctly)
-        return canonical
+        # Prepend the user's root directory
+        user_root = f"/user/{username}"
+        if canonical == "/":
+            full_path = user_root
+        else:
+            full_path = posixpath.join(user_root, canonical.lstrip('/'))
+        
+        return full_path
 
     def __init__(self, replication_factor=3, block_size_mb=64):
-        self.block_map = {}  # {file_path: [block_ids]}
+        self.user_block_maps = {}  # {username: {file_path: [block_ids]}}
         self.block_locations = {}  # {block_id: [node_id]}
         self.data_nodes = {} # {node_id: {'last_heartbeat': timestamp, 'blocks': set()}}
         self.replication_factor = replication_factor
         self.block_size_mb = block_size_mb
         self.lock = threading.Lock()
         self.active_users = {} # {username: last_login_time}
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - NAMENODE - %(levelname)s - %(message)s')
+        logging.info("NameNode initialized.")
+
+    def _check_user_logged_in(self, username: str):
+        """Checks if a user is logged in. Raises an exception if not."""
+        if username not in self.active_users:
+            logging.warning(f"Action denied for non-logged-in user: '{username}'. Active users: {list(self.active_users.keys())}")
+            raise Exception(f"User '{username}' is not logged in. Please login first.")
+        logging.info(f"User '{username}' is logged in. Proceeding with action.")
+
 
     def register_datanode(self, node_id):
         with self.lock:
@@ -50,8 +64,10 @@ class NameNode:
             if node_id in self.data_nodes:
                 self.data_nodes[node_id]['last_heartbeat'] = time.time()
 
-    def allocate_blocks(self, file_size: int) -> list[str]:
+    def allocate_blocks(self, username: str, file_size: int) -> list[str]:
+        self._check_user_logged_in(username)
         with self.lock:
+
             num_blocks = (file_size + self.block_size_mb * 1024 * 1024 - 1) // (self.block_size_mb * 1024 * 1024)
             block_ids = [f"block_{int(time.time()*1000)}_{i}_{random.randint(0,9999)}" for i in range(num_blocks)]
             
@@ -81,42 +97,67 @@ class NameNode:
         with self.lock:
             return self.block_locations.get(block_id, [])
 
-    def get_file_blocks(self, file_path):
+    def get_file_content(self, username: str, file_path: str):
+        self._check_user_logged_in(username)
         with self.lock:
-            canonical_path = self._canonical_dfs_path(file_path)
-            return self.block_map.get(canonical_path, [])
+            if username not in self.active_users:
+                raise Exception(f"User '{username}' is not logged in.")
 
-    def add_file(self, file_path, block_ids):
+
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            return user_map.get(canonical_path, [])
+
+    def get_file_blocks(self, username: str, file_path: str) -> list[str]:
+        self._check_user_logged_in(username)
         with self.lock:
-            canonical_path = self._canonical_dfs_path(file_path)
-            if canonical_path in self.block_map and self.block_map[canonical_path] == []:
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            # If the path exists and is a file (not a directory, which is represented by an empty list)
+            if canonical_path in user_map and user_map[canonical_path] != []:
+                return user_map[canonical_path]
+            else:
+                raise Exception(f"File '{file_path}' not found or is a directory.")
+
+    def add_file(self, username: str, file_path: str, block_ids: list[str]):
+        self._check_user_logged_in(username)
+        with self.lock:
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            if canonical_path in user_map and user_map[canonical_path] == []:
                 raise Exception(f"No se puede crear el archivo '{canonical_path}' porque ya existe un directorio con ese nombre.")
-            self.block_map[canonical_path] = block_ids
+            user_map[canonical_path] = block_ids
 
-    def mkdir(self, dir_path):
+    def mkdir(self, username: str, dir_path: str):
+        self._check_user_logged_in(username)
         with self.lock:
-            canonical_path = self._canonical_dfs_path(dir_path)
-            if canonical_path in self.block_map:
+
+            canonical_path = self._canonical_dfs_path(username, dir_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            if canonical_path in user_map:
                 # Check if it's a file or directory
-                if self.block_map[canonical_path] == []:
+                if user_map[canonical_path] == []:
                     raise Exception(f"El directorio '{canonical_path}' ya existe.")
                 else:
                     raise Exception(f"No se puede crear el directorio '{canonical_path}' porque ya existe un archivo con ese nombre.")
-            self.block_map[canonical_path] = [] # Represents a directory
+            user_map[canonical_path] = [] # Represents a directory
 
-    def rmdir(self, dir_path):
+    def rmdir(self, username: str, dir_path: str):
+        self._check_user_logged_in(username)
         with self.lock:
-            canonical_dir_to_delete = self._canonical_dfs_path(dir_path)
 
-            if canonical_dir_to_delete not in self.block_map:
+            canonical_dir_to_delete = self._canonical_dfs_path(username, dir_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+
+            if canonical_dir_to_delete not in user_map:
                 raise Exception(f"El directorio '{canonical_dir_to_delete}' no existe.")
             
-            if self.block_map[canonical_dir_to_delete] != []: # Check if it's marked as a directory
+            if user_map[canonical_dir_to_delete] != []: # Check if it's marked as a directory
                 raise Exception(f"La ruta '{canonical_dir_to_delete}' no es un directorio.")
 
             # Check if the directory is empty
             children = []
-            for item_path in self.block_map.keys():
+            for item_path in user_map.keys():
                 if item_path == canonical_dir_to_delete:
                     continue
                 parent_of_item = posixpath.dirname(item_path)
@@ -126,120 +167,135 @@ class NameNode:
             if children:
                 raise Exception(f"El directorio '{canonical_dir_to_delete}' no está vacío. Contiene: {children}")
             
-            del self.block_map[canonical_dir_to_delete]
+            del user_map[canonical_dir_to_delete]
             print(f"Directorio '{canonical_dir_to_delete}' eliminado.")
 
-    def ls(self, dir_path):
+    def ls(self, username: str, dir_path: str):
+        self._check_user_logged_in(username)
         with self.lock:
-            query_canonical_path = self._canonical_dfs_path(dir_path)
+
+            query_canonical_path = self._canonical_dfs_path(username, dir_path)
+            user_map = self.user_block_maps.setdefault(username, {})
             results = []
-            for item_canonical_path in self.block_map.keys():
+            for item_canonical_path in user_map.keys():
                 parent_dir_of_item = posixpath.dirname(item_canonical_path)
                 if parent_dir_of_item == query_canonical_path:
                     results.append(posixpath.basename(item_canonical_path))
             return sorted(list(set(results)))
 
-    def mv(self, source_path_str: str, destination_path_str: str):
+    def mv(self, username: str, source_path_str: str, destination_path_str: str):
+        self._check_user_logged_in(username)
         with self.lock:
-            canonical_source = self._canonical_dfs_path(source_path_str)
-            canonical_dest = self._canonical_dfs_path(destination_path_str)
 
-            if canonical_source == "/":
-                return False, "No se puede mover el directorio raíz '/' ."
-            if canonical_dest == "/": # Mover a la raíz es permitido, pero el destino final será /nombre_del_origen
-                final_target_path = self._canonical_dfs_path(posixpath.join("/", posixpath.basename(canonical_source)))
+            canonical_source = self._canonical_dfs_path(username, source_path_str)
+            canonical_dest = self._canonical_dfs_path(username, destination_path_str)
+            user_map = self.user_block_maps.setdefault(username, {})
+
+            if canonical_source == f"/user/{username}":
+                return False, "No se puede mover el directorio raíz de usuario."
+            if canonical_dest == f"/user/{username}": 
+                final_target_path = self._canonical_dfs_path(username, posixpath.join("/", posixpath.basename(canonical_source)))
             else:
                 final_target_path = canonical_dest
 
             # Verificar si el origen existe
-            if canonical_source not in self.block_map:
+            if canonical_source not in user_map:
                 return False, f"La ruta de origen '{canonical_source}' no existe."
 
             # Verificar si el destino es un subdirectorio del origen (para directorios)
-            if self.block_map[canonical_source] == [] and final_target_path.startswith(canonical_source + '/') : # Es un directorio
+            if user_map[canonical_source] == [] and final_target_path.startswith(canonical_source + '/') : # Es un directorio
                 return False, f"No se puede mover un directorio ('{canonical_source}') a un subdirectorio de sí mismo ('{final_target_path}')."
 
             # Verificar si el destino ya existe (si no es el mismo que el origen después de la normalización)
-            # Esta condición es compleja porque si final_target_path es un directorio, queremos mover *dentro* de él.
-            # Si final_target_path es un archivo, es un error.
-            # Si final_target_path no existe, está bien.
-
-            # Primero, determinamos la ruta de destino *efectiva*.
             effective_final_target_path = final_target_path
-            if final_target_path in self.block_map and self.block_map[final_target_path] == []: # Si el destino es un directorio existente
-                effective_final_target_path = self._canonical_dfs_path(posixpath.join(final_target_path, posixpath.basename(canonical_source)))
+            if final_target_path in user_map and user_map[final_target_path] == []: # Si el destino es un directorio existente
+                effective_final_target_path = self._canonical_dfs_path(username, posixpath.join(final_target_path, posixpath.basename(canonical_source)))
             
-            if effective_final_target_path in self.block_map and effective_final_target_path != canonical_source:
+            if effective_final_target_path in user_map and effective_final_target_path != canonical_source:
                  return False, f"La ruta de destino '{effective_final_target_path}' ya existe."
 
             # Actualizamos final_target_path para que sea la ruta efectiva donde se moverá el item.
             final_target_path = effective_final_target_path
 
             # Lógica de movimiento
-            if self.block_map[canonical_source] == []: # Es un directorio
+            if user_map[canonical_source] == []: # Es un directorio
                 # Mover el directorio en sí
-                self.block_map[final_target_path] = []
-                del self.block_map[canonical_source]
+                user_map[final_target_path] = []
+                del user_map[canonical_source]
 
                 # Mover todos los elementos hijos
-                # Necesitamos iterar sobre una copia de las claves si vamos a modificar el diccionario
                 items_to_move = []
-                for item_path in list(self.block_map.keys()):
+                for item_path in list(user_map.keys()):
                     if item_path.startswith(canonical_source + '/'):
                         items_to_move.append(item_path)
                 
                 for old_item_path in items_to_move:
-                    # Construir la nueva ruta para el item hijo
-                    # Ejemplo: source=/a/b, item_path=/a/b/c/d.txt, final_target_path=/x/y (que es el nuevo /a/b)
-                    # new_item_path debe ser /x/y/c/d.txt
                     relative_to_source = posixpath.relpath(old_item_path, canonical_source)
                     new_item_path = posixpath.join(final_target_path, relative_to_source)
-                    new_item_path_canonical = self._canonical_dfs_path(new_item_path)
+                    new_item_path_canonical = self._canonical_dfs_path(username, new_item_path)
 
-                    self.block_map[new_item_path_canonical] = self.block_map.pop(old_item_path)
+                    user_map[new_item_path_canonical] = user_map.pop(old_item_path)
                 print(f"Directorio '{canonical_source}' y su contenido movido a '{final_target_path}'.")
                 return True, final_target_path # Devuelve la ruta final donde se movió.
             else: # Es un archivo
-                self.block_map[final_target_path] = self.block_map.pop(canonical_source)
+                user_map[final_target_path] = user_map.pop(canonical_source)
                 print(f"Archivo '{canonical_source}' movido a '{final_target_path}'.")
                 return True, final_target_path # Devuelve la ruta final donde se movió.
 
     def login(self, username: str) -> tuple[bool, str]:
+        logging.info(f"Login attempt for user: '{username}'.")
         with self.lock:
-            # En un sistema real, aquí se verificarían credenciales.
-            # Por ahora, simplemente registramos al usuario como activo.
+            if not username:
+                logging.warning("Login attempt with empty username.")
+                return False, "Username cannot be empty."
+            
+            if username in self.active_users:
+                logging.info(f"User '{username}' attempted to log in again. Already active.")
+                self.active_users[username] = time.time() # Update last seen time
+                logging.info(f"Active users: {list(self.active_users.keys())}")
+                return True, f"User '{username}' is already logged in. Session refreshed."
+
             self.active_users[username] = time.time()
-            return True, f"Nuevo usuario '{username}' ha iniciado sesión."
+            logging.info(f"User '{username}' logged in successfully.")
+            logging.info(f"Active users: {list(self.active_users.keys())}")
+            # Asegúrate que _canonical_dfs_path es llamado correctamente si es necesario aquí
+            # Por ejemplo, si necesitas la ruta canónica para el mensaje de retorno o lógica interna.
+            # canonical_home_path = self._canonical_dfs_path(username, '/') 
+            # return True, f"User '{username}' logged in successfully. Home: {canonical_home_path}"
+            return True, f"User '{username}' logged in successfully."
 
     def logout(self, username: str) -> tuple[bool, str]:
+        logging.info(f"Logout attempt for user: '{username}'.")
         with self.lock:
-            if username in self.active_users:
-                del self.active_users[username]
-                return True, f"Usuario '{username}' ha cerrado sesión."
-            else:
-                return False, f"Usuario '{username}' no estaba logueado."
-
-    def rm(self, file_path):
-        with self.lock:
-            canonical_path = self._canonical_dfs_path(file_path)
+            if username not in self.active_users:
+                logging.warning(f"Logout attempt for non-active user: '{username}'.")
+                logging.info(f"Active users: {list(self.active_users.keys())}")
+                return False, f"User '{username}' is not logged in."
             
-            if canonical_path not in self.block_map:
+            del self.active_users[username]
+            logging.info(f"User '{username}' logged out successfully.")
+            logging.info(f"Active users: {list(self.active_users.keys())}")
+            return True, f"User '{username}' logged out successfully."
+
+    def rm(self, username: str, file_path: str):
+        self._check_user_logged_in(username)
+        with self.lock:
+
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            
+            if canonical_path not in user_map:
                 raise Exception(f"El archivo o directorio '{canonical_path}' no existe.")
             
             # Check if it's a directory (represented by an empty list of blocks)
-            if self.block_map[canonical_path] == []:
+            if user_map[canonical_path] == []:
                 raise Exception(f"'{canonical_path}' es un directorio. Use rmdir para eliminar directorios.")
 
-            blocks_to_remove = self.block_map.pop(canonical_path, None)
-            if blocks_to_remove is None: # Should be caught by 'not in self.block_map' already
+            blocks_to_remove = user_map.pop(canonical_path, None)
+            if blocks_to_remove is None: 
                 return
 
-            # blocks_to_remove should be a list of block_ids for a file
-            # If it was something else (e.g. somehow not a list, or not an empty list for dir), 
-            # it implies an inconsistent state, but pop would have removed it.
-            # The primary check is that it's not a directory (block_map[canonical_path] == [])
-
-            for block_id in blocks_to_remove: # blocks_to_remove is list of block_ids
+            for block_id in blocks_to_remove: 
                 if block_id in self.block_locations:
                     nodes_with_block = self.block_locations.pop(block_id, [])
                     for node_id in nodes_with_block:
@@ -247,11 +303,24 @@ class NameNode:
                             self.data_nodes[node_id]['blocks'].discard(block_id)
             print(f"Archivo '{canonical_path}' y sus bloques asociados eliminados de los metadatos.")
 
-    def get_file_content(self, file_path):
+    def get_file_content(self, username: str, file_path: str):
+        self._check_user_logged_in(username)
         # Simulación: solo retorna los bloques asignados
         with self.lock:
-            canonical_path = self._canonical_dfs_path(file_path)
-            return self.block_map.get(canonical_path, []) 
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            return user_map.get(canonical_path, [])
+
+    def get_file_blocks(self, username: str, file_path: str) -> list[str]:
+        self._check_user_logged_in(username)
+        with self.lock:
+            canonical_path = self._canonical_dfs_path(username, file_path)
+            user_map = self.user_block_maps.setdefault(username, {})
+            # If the path exists and is a file (not a directory, which is represented by an empty list)
+            if canonical_path in user_map and user_map[canonical_path] != []:
+                return user_map[canonical_path]
+            else:
+                raise Exception(f"File '{file_path}' not found or is a directory.") 
 
     def check_and_rereplicate(self):
         with self.lock:
