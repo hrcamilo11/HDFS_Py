@@ -1,1 +1,0 @@
-# This file makes the 'protos' directory a Python package.
